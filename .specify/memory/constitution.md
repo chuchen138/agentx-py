@@ -1,50 +1,337 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# AgentX 项目章程
 
-## Core Principles
+<!--
+同步影响报告
+==================
+版本变更：template → 1.0.0
+修改原则：无（首次创建）
+新增章节:
+  - 一、规范驱动开发（强制要求）
+  - 二、架构优先与分层设计
+  - 三、测试优先开发（不可协商）
+  - 四、API 契约设计
+  - 五、默认安全原则
+  - 六、可观测性与监控
+  - 七、性能与可扩展性
+  - 八、代码质量标准
+  - 九、数据库设计原则
+  - 十、以 Agent 为中心的设计
+删除章节：无
+需要对齐的模板:
+  - .specify/templates/plan-template.md ✅ 已对齐
+  - .specify/templates/spec-template.md ✅ 已对齐
+  - .specify/templates/tasks-template.md ✅ 已对齐
+后续待办:
+  - TODO: 与团队评审并收集反馈
+  - TODO: 在未来迭代中添加具体的性能基准
+-->
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+## 核心原则
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### 一、规范驱动开发（强制要求）
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+**所有开发必须遵循规范驱动方法论：**
+- 每个功能必须先使用 `/speckit.specify` 编写规范文档
+- 编码前通过 `/speckit.plan` 创建技术实现计划
+- 通过 `/speckit.tasks` 生成任务分解以系统化执行
+- 实现严格遵循审批后的规范和计划，使用 `/speckit.implement`
+- 未经规范审批不得进行任何代码变更
+- 规范作为整个开发生命周期的唯一事实来源
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+**基本原理**：确保清晰性、减少返工、实现 AI 辅助开发的一致性。
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### 二、架构优先与分层设计
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+**系统必须维护严格的分层架构：**
+- **前端层**：React + Ant Design，Redux 状态管理
+- **API 层**：FastAPI 端点，请求/响应处理
+- **服务层**：业务逻辑封装
+- **数据层**：PostgreSQL 持久化，SQLAlchemy ORM
+- **消息队列**：RabbitMQ 用于异步任务处理
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+**关键要求：**
+- 各层之间职责清晰分离
+- 依赖关系只能向下流动（禁止循环依赖）
+- 每层都有明确定义的接口
+- 服务是自包含且可独立测试的
+- 通过 MCP（多能力平台）实现可扩展性
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+**基本原理**：确保可维护性、可测试性和水平扩展能力。
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### 三、测试优先开发
 
-## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
+**TDD 方法论对所有功能都是强制性的：**
+- 测试代码必须在实现代码之前编写
+- 严格执行红 - 绿 - 重构循环
+- 用户故事必须是可独立测试的
+- 验收标准采用 Given-When-Then 格式定义
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+**测试金字塔要求：**
+- **单元测试**：所有服务方法、工具类、核心逻辑
+- **集成测试**：API 端点、数据库操作、MCP 服务
+- **契约测试**：服务间通信、共享模式
+- **端到端测试**：关键用户旅程
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**覆盖率要求：**
+- 新功能的最低代码覆盖率为 80%
+- 所有关键路径必须有测试覆盖
+- 明确测试边界情况
+
+**基本原理**：确保代码质量、防止回归、记录预期行为。
+
+### 四、API 契约设计
+
+**所有 API 必须遵循 RESTful 约定：**
+- 基于资源的 URL（例如 `/api/agents`、`/api/tools`）
+- 正确使用 HTTP 方法（GET、POST、PUT、DELETE）
+- 一致的响应格式：`{"data": ..., "error": ...}`
+- 标准化的错误代码和消息
+- 使用 Pydantic 定义请求/响应模式
+
+**认证与授权：**
+- 所有受保护的端点使用基于 JWT 令牌的认证
+- 强制执行基于角色的访问控制（RBAC）
+- 实现令牌过期和刷新机制
+
+**版本控制：**
+- API 版本前缀：`/api/v1/`、`/api/v2/`
+- 在主版本内保持向后兼容性
+- 破坏性变更变更前至少提前 3 个月发出弃用通知
+
+**基本原理**：确保 API 一致性、安全性和易于集成。
+
+### 五、默认安全原则
+
+**安全是不可协商的，必须是内建的：**
+
+**认证：**
+- bcrypt 密码哈希（最低成本因子 12）
+- JWT 令牌具有适当的过期时间（访问令牌最长 24 小时）
+- 实现刷新令牌轮换机制
+
+**授权：**
+- 在服务层强制执行 RBAC 模型
+- 应用最小权限原则
+- 除非明确公开，否则所有端点都受保护
+
+**数据保护：**
+- 通过参数化查询防止 SQL 注入（SQLAlchemy）
+- 通过输入验证和输出编码防止 XSS
+- 在状态变更操作上实施 CSRF 保护
+- 敏感数据在静态时使用 AES-256 加密
+- 所有通信都需要 HTTPS/TLS
+
+**审计与合规：**
+- 记录所有安全敏感操作
+- 跟踪失败的身份验证尝试并限制速率
+- 必须进行定期安全审计
+
+**基本原理**：保护用户数据、维护系统完整性、满足合规要求。
+
+### 六、可观测性与监控
+
+**系统必须提供全面的可观测性：**
+
+**日志记录：**
+- 所有服务使用结构化 JSON 日志
+- 日志级别：DEBUG、INFO、WARNING、ERROR、CRITICAL
+- 跨服务的请求追踪使用关联 ID
+- 日志中不包含敏感数据（PII、密码、令牌）
+
+**监控：**
+- 应用指标：请求延迟、错误率、吞吐量
+- 系统指标：CPU、内存、磁盘使用率
+- 数据库指标：查询性能、连接池
+- 消息队列指标：队列深度、处理速率
+
+**告警：**
+- 错误率阈值（超过 1% 触发告警）
+- 延迟 SLA 违规（p95 > 500ms）
+- 资源耗尽警告（使用率超过 80%）
+- 服务健康检查失败
+
+**基本原理**：实现快速问题检测、调试和性能优化。
+
+### 七、性能与可扩展性
+
+**必须达到并维持性能目标：**
+
+**后端目标：**
+- API 响应时间：标准操作 p95 < 200ms
+- 数据库查询：简单查询 < 50ms，复杂查询 < 200ms
+- 吞吐量：每个实例支持 1000+ 并发请求
+
+**可扩展性要求：**
+- 所有无状态服务支持水平扩展
+- 读密集型工作负载使用数据库读副本
+- 使用 Redis 缓存频繁访问的数据
+- 通过 Celery 异步处理长时间运行的任务
+
+**优化指南：**
+- 所有外键和过滤列上建立数据库索引
+- 通过预加载防止 N+1 查询
+- 适当配置连接池
+- YAGNI 原则：按需优化，不提前优化
+
+**基本原理**：确保响应迅速的用户体验和经济高效的扩展。
+
+### 八、代码质量标准
+
+**代码质量是不可协商的：**
+
+**Python 标准：**
+- 所有函数签名必须使用类型提示
+- 公共 API 需要文档字符串（Google 风格）
+- 强制执行 PEP 8 风格指南
+- 最大函数长度：50 行
+- 最大圈复杂度：10
+
+**代码组织：**
+- 合理情况下每个文件一个类/函数
+- 清晰、描述性的命名（不使用缩写）
+- DRY 原则：将通用逻辑提取到可重用组件中
+- 始终应用 SOLID 原则
+
+**审查要求：**
+- 所有代码在合并前需要同行审查
+- 必须通过自动化 linting（flake8、black、mypy）
+- 没有关联工单引用的 TODO 注释不允许存在
+
+**文档：**
+- 每个模块都需要 README.md
+- 复杂逻辑的内联注释（说明为什么，而不是做什么）
+- API 文档自动生成（OpenAPI/Swagger）
+
+**基本原理**：维护代码库的可维护性和团队协作效率。
+
+### 九、数据库设计原则
+
+**PostgreSQL 数据库设计必须遵循以下规则：**
+
+**模式设计：**
+- 标准化至 3NF，除非性能需要去标准化
+- 所有关系都使用外键约束
+- 所有外键和频繁查询的列上建立索引
+- 通过 `deleted_at` 时间戳实现软删除（不硬删除）
+
+**迁移管理：**
+- 所有模式变更通过 Alembic 迁移
+- 迁移一旦提交就不可变
+- 每个迁移都需要具备回滚能力
+- 生产环境变更使用零停机部署策略
+
+**数据完整性：**
+- 维护 ACID 合规性
+- 多步骤操作使用事务
+- 并发更新使用乐观锁
+- 关键实体的审计跟踪（created_at、updated_at、user_id）
+
+**基本原理**：确保数据完整性、查询性能和演进式模式设计。
+
+### 十、以 Agent 为中心的设计
+
+**Agent模块是核心业务能力：**
+
+**Agent 生命周期管理：**
+- 状态机：私有 → 待审核 → 已发布 → 被拒绝/已下架
+- 版本控制：语义化版本（major.minor.patch）
+- 已发布的版本不可变
+- 可回滚到任何先前版本
+
+**Agent 配置：**
+- 系统提示词定义 Agent 行为和个性
+- 每个 Agent 可配置工具集成
+- 知识库关联独立管理
+- 模型参数可调（temperature、max_tokens 等）
+
+**工作区个性化：**
+- 用户可以定制个人 Agent 工作区
+- 快速访问常用 Agent
+- 通过市场发现 Agent
+
+**基本原理**：提供灵活、个性化的 Agent 体验，同时保持治理。
+
+## 附加约束
+
+**技术栈（固定）：**
+- 后端：Python 3.9+、FastAPI 0.104+
+- 前端：React 18+、TypeScript 5.0+
+- 数据库：PostgreSQL 14+
+- 消息队列：RabbitMQ 3.10+
+- 缓存：Redis 7.0+（可选）
+- ORM：SQLAlchemy 2.0+
+- 验证：Pydantic 2.0+
+- 任务队列：Celery 5.3+
+
+**部署要求：**
+- 必须使用 Docker 容器化
+- 本地开发使用 Docker Compose
+- 生产环境准备好 Kubernetes
+- 基于环境的配置（dev/test/prod）
+- 推荐使用基础设施即代码（Terraform）
+
+**合规性：**
+- 欧盟用户的 GDPR 合规
+- 实施数据保留政策
+- 支持被删除权
+- 提供用户数据导出能力
+
+## 开发工作流程
+
+**规范驱动流程：**
+1. **章程**：建立/更新项目原则（`/speckit.constitution`）
+2. **规范**：定义构建什么（`/speckit.specify`）
+3. **计划**：创建技术实现计划（`/speckit.plan`）
+4. **任务**：生成可执行的任务列表（`/speckit.tasks`）
+5. **实现**：执行实现（`/speckit.implement`）
+
+**质量门禁：**
+- 规范审批后才能进行计划
+- 计划审批后才能进行任务分解
+- 所有测试必须通过才能合并
+- 面向用户的功能需要手动 QA
+- 关键路径需要性能基准测试
+
+**分支策略：**
+- `main`：生产就绪代码（受保护）
+- `develop`：功能集成分支
+- `feature/*`：单个功能开发
+- `release/*`：发布准备
+- `hotfix/*`：关键生产修复
+
+**代码审查要求：**
+- 最少需要 1 人批准（关键变更需要 2 人）
+- 审查者必须验证章程合规性
+- 自动化检查必须通过（CI/CD）
+- 不允许直接向 main/master 分支提交
+
+## 治理
+
+**本章程高于所有其他开发实践和指南。**
+
+**修正流程：**
+1. 通过 GitHub Issue 提出修正案
+2. 讨论对现有原则和代码库的影响
+3. 记录基本原理和迁移计划（如需要）
+4. 团队审查和批准（共识或多数投票）
+5. 使用新版本号更新章程
+6. 向所有利益相关者传达变更
+
+**版本控制策略：**
+- MAJOR（主版本）：向后不兼容的变更（原则删除、重新定义）
+- MINOR（次版本）：添加新原则或扩展现有原则
+- PATCH（补丁版本）：澄清、措辞改进、拼写错误修复
+
+**合规性验证：**
+- 所有 PR 必须包含章程合规性检查清单
+- 代码审查必须验证原则遵循情况
+- 建议每季度审查章程
+- 复杂性偏差必须记录并证明合理性
+
+**执行：**
+- 代码审查阻止不符合要求的变更
+- 系统地跟踪和解决技术债务
+
+---
+
+**版本**: 1.0.0 | **批准日期**: 2026-03-09 | **最后修订**: 2026-03-09

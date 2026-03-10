@@ -1,50 +1,50 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# [项目名称] 项目章程
+<!-- 例如：Spec 项目章程、TaskFlow 项目章程等 -->
 
-## Core Principles
+## 核心原则
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### [原则 1 名称]
+<!-- 例如：一、库优先 -->
+[原则 1 描述]
+<!-- 例如：每个功能都作为独立库开始；库必须是自包含、可独立测试、有文档的；需要明确的目的——不要只有组织专用的库 -->
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### [原则 2 名称]
+<!-- 例如：二、CLI 接口 -->
+[原则 2 描述]
+<!-- 例如：每个库都通过 CLI 公开功能；文本输入/输出协议：stdin/参数 → stdout，错误 → stderr；支持 JSON + 人类可读格式 -->
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### [原则 3 名称]
+<!-- 例如：三、测试优先（不可协商） -->
+[原则 3 描述]
+<!-- 例如：TDD 强制要求：编写测试 → 用户批准 → 测试失败 → 然后实现；严格执行红 - 绿 - 重构循环 -->
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### [原则 4 名称]
+<!-- 例如：四、集成测试 -->
+[原则 4 描述]
+<!-- 例如：需要集成测试的重点领域：新库契约测试、契约变更、服务间通信、共享模式 -->
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### [原则 5 名称]
+<!-- 例如：五、可观测性，六、版本控制与破坏性变更，七、简洁性 -->
+[原则 5 描述]
+<!-- 例如：文本 I/O 确保可调试性；需要结构化日志；或者：MAJOR.MINOR.BUILD 格式；或者：从简单开始，YAGNI 原则 -->
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## [第 2 节名称]
+<!-- 例如：附加约束、安全要求、性能标准等 -->
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+[第 2 节内容]
+<!-- 例如：技术栈要求、合规标准、部署策略等 -->
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+## [第 3 节名称]
+<!-- 例如：开发工作流、审查流程、质量门禁等 -->
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+[第 3 节内容]
+<!-- 例如：代码审查要求、测试门禁、部署审批流程等 -->
 
-## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
+## 治理
+<!-- 例如：章程高于所有其他实践；修正需要文档、审批、迁移计划 -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+[治理规则]
+<!-- 例如：所有 PR/审查必须验证合规性；必须证明复杂性合理性；使用 [指导文件] 进行运行时开发指导 -->
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**版本**: [章程版本] | **批准日期**: [批准日期] | **最后修订**: [最后修订日期]
+<!-- 例如：版本：2.1.1 | 批准日期：2025-06-13 | 最后修订：2025-07-16 -->
