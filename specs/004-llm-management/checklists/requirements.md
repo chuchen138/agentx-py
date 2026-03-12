@@ -4,20 +4,19 @@
      【目标对象】`app/domain/llm/models.py`
      【修改目的】定义 LLM 服务商和模型的领域模型
      【修改方式】使用 SQLAlchemy 定义 ORM 模型
-     【相关依赖】`AgentX/domain/llm/model/*.java`
      【修改内容】
-        - 创建 ProviderEntity 模型（providers 表）
-        - 创建 ModelEntity 模型（models 表）
-        - 定义字段：id, user_id, protocol, name, description, config, is_official, status, created_at, updated_at
-        - 定义 ProviderProtocol 枚举（OPENAI, MOONSHOT, AZURE_OPENAI, CUSTOM）
+        - 创建 Provider 模型（providers 表）
+        - 创建 Model 模型（models 表）
+        - 定义 ProviderType 枚举（ALL, OFFICIAL, CUSTOM）
+        - 定义 ProviderProtocol 枚举（OPENAI, MOONSHOT, AZURE_OPENAI）
         - 定义 ModelType 枚举（CHAT, EMBEDDING）
         - 实现 Pydantic Schema（ProviderDTO, ModelDTO）
 
-- [ ] 1.2 实现 ProviderRepository
+- [ ] 1.2 实现 LLM 服务商仓储模式
      【目标对象】`app/domain/llm/repository.py`
-     【修改目的】定义 LLM 服务商的数据访问接口
+     【修改目的】定义 LLM 服务商数据访问接口
      【修改方式】实现 Repository 模式
-     【相关依赖】SQLAlchemy, ProviderEntity
+     【相关依赖】SQLAlchemy
      【修改内容】
         - 定义 ProviderRepository 接口
         - 实现 SQLAlchemy ProviderRepository
