@@ -1,10 +1,10 @@
 ## 实施
 
 - [ ] 1.1 定义工具实体和枚举类型
-     【目标对象】`app/domain/tool/models/`
+     【目标对象】`app/domain/tool/`
      【修改目的】定义工具相关的领域模型
      【修改方式】使用 SQLAlchemy ORM 定义数据模型
-     【相关依赖】`AgentX/src/main/java/org/xhy/domain/tool/model/*.java`
+     【相关依赖】SQLAlchemy, Pydantic
      【修改内容】
         - 创建 ToolEntity（tools 表）：id, name, icon, subtitle, description, user_id, labels, tool_type, upload_type, upload_url, install_command, tool_list, status, is_office, reject_reason, failed_step_status, mcp_server_name, is_global, created_at, updated_at
         - 创建 ToolType 枚举：MCP
@@ -149,6 +149,7 @@
         - 实现 Zip 包解析和工具列表获取
         - 验证工具定义的完整性
         - 触发状态转移到 GITHUB_URL_VALIDATION 或 DEPLOYING
+        - 实现超时处理（默认超时 30 秒）
 
 - [ ] 1.14 实现 GitHub URL 验证状态处理器
      【目标对象】`app/domain/tool/state_machine/processors/`
@@ -187,16 +188,17 @@
         - 触发状态转移到 PUBLISHED
 
 - [ ] 1.17 实现手动审核处理器
- 
      【目标对象】`app/domain/tool/state_machine/processors/`
      【修改目的】处理管理员手动审核
      【修改方式】实现状态处理器
      【相关依赖】ToolStateMachine
      【修改内容】
         - 创建 ManualReviewProcessor
-        - 支持审核通过：转移到下一个状态
-        - 支持拒绝：转移到 REJECTED 状态
+        - 支持审核通过：转移到 APPROVED 状态
+        - 支持拒绝：转移到 FAILED 状态
         - 记录拒绝原因
+        - 实现双人复核机制（可选配置）
+        - 审核日志脱敏处理
 
 - [ ] 1.18 实现工具应用服务层
      【目标对象】`app/application/tool/`
@@ -292,6 +294,7 @@
         - 实现工具调用（call_tool）
         - 实现结果解析和转换
         - 实现连接管理（连接池、重连）
+        - 实现缓存策略（TTL 默认 5 分钟）
 
 - [ ] 1.25 实现 GitHub API 集成
      【目标对象】`app/infrastructure/github/`
@@ -304,7 +307,9 @@
         - 实现 GitHub 文件列表获取
         - 实现 GitHub 文件内容下载
         - 实现 GitHub Zip 包下载
-        - 处理 GitHub 认证
+        - 处理 GitHub 认证（OAuth 2.0 和 Personal Access Token）
+        - 实现 API 速率限制处理（指数退避重试）
+        - 实现失败场景处理（仓库不存在、无权限访问等）
 
 - [ ] 1.26 创建 API 路由（FastAPI）- 工具管理
      【目标对象】`app/api/v1/tools/`
@@ -384,7 +389,9 @@
         - 测试 GitHub URL 验证处理器
         - 测试部署处理器
         - 测试发布处理器
-        - 测试失败场景
+        - 测试失败场景（GitHub 验证失败、部署失败、获取工具失败）
+        - 测试超时处理
+        - 测试并行审核场景
 
 - [ ] 1.32 编写集成测试 - API 端点
      【目标对象】`tests/integration/test_tool_api.py`
@@ -456,10 +463,11 @@
      【相关依赖】redis
      【修改内容】
         - 创建 CacheService
-        - 实现工具列表缓存
-        - 实现工具详情缓存
-        - 实现 MCP 工具列表缓存
-        - 实现缓存失效策略
+        - 实现工具列表缓存（TTL 10 分钟）
+        - 实现工具详情缓存（TTL 5 分钟）
+        - 实现 MCP 工具列表缓存（TTL 5 分钟）
+        - 实现缓存失效策略（工具更新时失效）
+        - 实现缓存穿透保护（布隆过滤器）
 
 - [ ] 1.38 实现监控和日志
      【目标对象】`app/infrastructure/monitoring/`
@@ -468,6 +476,8 @@
      【相关依赖】logging, prometheus_client
      【修改内容】
         - 实现应用日志（DEBUG, INFO, WARNING, ERROR）
-        - 实现审计日志（工具操作记录）
+        - 实现审计日志（工具操作记录，包含用户 ID、操作类型、时间戳）
         - 实现性能监控（API 响应时间、状态机处理时间）
         - 实现错误监控（异常捕获和告警）
+        - 实现安全事件监控（代码扫描告警、审核拒绝事件）
+        - 实现日志脱敏（隐藏密钥和敏感信息）

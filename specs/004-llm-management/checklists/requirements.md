@@ -4,19 +4,20 @@
      【目标对象】`app/domain/llm/models.py`
      【修改目的】定义 LLM 服务商和模型的领域模型
      【修改方式】使用 SQLAlchemy 定义 ORM 模型
+     【相关依赖】SQLAlchemy 2.0+, Pydantic 2.0+
      【修改内容】
-        - 创建 Provider 模型（providers 表）
-        - 创建 Model 模型（models 表）
-        - 定义 ProviderType 枚举（ALL, OFFICIAL, CUSTOM）
-        - 定义 ProviderProtocol 枚举（OPENAI, MOONSHOT, AZURE_OPENAI）
+        - 创建 ProviderEntity 模型（providers 表）
+        - 创建 ModelEntity 模型（models 表）
+        - 定义字段：id, user_id, protocol, name, description, config, is_official, status, created_at, updated_at
+        - 定义 ProviderProtocol 枚举（OPENAI, MOONSHOT, AZURE_OPENAI, CUSTOM）
         - 定义 ModelType 枚举（CHAT, EMBEDDING）
         - 实现 Pydantic Schema（ProviderDTO, ModelDTO）
 
-- [ ] 1.2 实现 LLM 服务商仓储模式
+- [ ] 1.2 实现 ProviderRepository
      【目标对象】`app/domain/llm/repository.py`
-     【修改目的】定义 LLM 服务商数据访问接口
+     【修改目的】定义 LLM 服务商的数据访问接口
      【修改方式】实现 Repository 模式
-     【相关依赖】SQLAlchemy
+     【相关依赖】SQLAlchemy, ProviderEntity
      【修改内容】
         - 定义 ProviderRepository 接口
         - 实现 SQLAlchemy ProviderRepository
@@ -77,28 +78,30 @@
 - [ ] 1.7 实现高可用网关服务
      【目标对象】`app/application/llm/high_availability_service.py`
      【修改目的】提供智能路由、负载均衡、故障转移能力
-     【修改方式】实现应用服务
-     【相关依赖】LLMDomainService
+     【修改方式】实现应用服务（异步）
+     【相关依赖】LLMDomainService, asyncio, Redis
      【修改内容】
-        - syncModelToGateway - 同步模型到网关
-        - selectBestProvider - 选择最佳服务商和模型
-        - reportCallResult - 上报调用结果
-        - 会话亲和性缓存
+        - sync_model_to_gateway - 同步模型到网关（异步）
+        - select_best_provider - 选择最佳服务商和模型（异步，支持会话亲和性）
+        - report_call_result - 上报调用结果（异步，非阻塞）
+        - 会话亲和性缓存（使用 Redis）
         - 负载均衡策略（轮询、健康度加权）
-        - 故障转移机制
-        - 降级链支持
+        - 故障转移机制（自动重试，超时控制 < 1s）
+        - 降级链支持（配置化降级顺序）
 
 - [ ] 1.8 实现健康度监控
      【目标对象】`app/application/llm/health_monitor.py`
      【修改目的】监控模型实例的健康状态
-     【修改方式】定时任务和实时上报
-     【相关依赖】无
+     【修改方式】定时任务和实时上报（异步）
+     【相关依赖】asyncio, prometheus_client
      【修改内容】
-        - 调用成功率统计
-        - 平均延迟计算
-        - 错误率监控
-        - 健康度评分算法
-        - P99 延迟统计
+        - 调用成功率统计（实时计算）
+        - 平均延迟计算（滑动窗口）
+        - 错误率监控（阈值告警）
+        - 健康度评分算法（加权评分）
+        - P99 延迟统计（百分位数）
+        - Prometheus 指标导出
+        - 结构化日志记录
 
 - [ ] 1.9 实现 LLMAppService
      【目标对象】`app/application/llm/llm_app_service.py`
@@ -143,15 +146,16 @@
 - [ ] 1.12 实现领域事件
      【目标对象】`app/domain/llm/events.py`
      【修改目的】通过领域事件解耦各模块
-     【修改方式】事件驱动架构
-     【相关依赖】无
+     【修改方式】事件驱动架构（基于 FastAPI Events + asyncio）
+     【相关依赖】FastAPI Events, asyncio
      【修改内容】
         - ModelCreatedEvent - 模型创建事件
         - ModelUpdatedEvent - 模型更新事件
         - ModelDeletedEvent - 模型删除事件
         - ModelStatusChangedEvent - 模型状态变更事件
         - ModelsBatchDeletedEvent - 批量删除模型事件
-        - 事件监听器：HighAvailabilityEventListener
+        - 事件监听器：HighAvailabilityEventListener（异步监听）
+        - 事件发布：使用 FastAPI background_tasks 或 Celery
 
 - [ ] 1.13 创建 API 路由 - LLM 管理
      【目标对象】`app/api/v1/llm/`
@@ -200,20 +204,22 @@
 - [ ] 1.16 编写单元测试 - 领域层
      【目标对象】`tests/test_llm_domain.py`
      【修改目的】确保 LLM 领域逻辑正确性
-     【修改方式】使用 pytest
-     【相关依赖】LLMDomainService
+     【修改方式】使用 pytest + pytest-asyncio
+     【相关依赖】LLMDomainService, pytest, pytest-asyncio
      【修改内容】
         - 测试服务商创建、更新、删除
         - 测试模型创建、更新、删除
         - 测试配置加密解密
         - 测试状态切换
         - 测试协议验证
+        - **新增**：测试多用户并发场景
+        - **新增**：测试权限控制逻辑
 
 - [ ] 1.17 编写单元测试 - 高可用网关
      【目标对象】`tests/test_llm_high_availability.py`
      【修改目的】确保高可用网关逻辑正确性
-     【修改方式】使用 pytest
-     【相关依赖】HighAvailabilityService
+     【修改方式】使用 pytest + pytest-asyncio
+     【相关依赖】HighAvailabilityService, pytest, pytest-asyncio
      【修改内容】
         - 测试智能路由选择
         - 测试会话亲和性
@@ -221,6 +227,9 @@
         - 测试故障转移
         - 测试降级链
         - 测试健康度评估
+        - **新增**：测试降级链循环风险
+        - **新增**：测试多模型并发处理
+        - **新增**：性能测试（模型选择 < 50ms）
 
 - [ ] 1.18 编写单元测试 - 协议适配器
      【目标对象】`tests/test_llm_protocol_adapter.py`
@@ -265,22 +274,51 @@
 - [ ] 1.21 实现缓存策略
      【目标对象】`app/infrastructure/cache/llm_cache.py`
      【修改目的】提高性能，减少数据库查询
-     【修改方式】使用 Redis
-     【相关依赖】redis
+     【修改方式】使用 Redis（异步）
+     【相关依赖】redis.asyncio, asyncio
      【修改内容】
-        - 缓存官方模型列表
-        - 缓存激活模型列表
-        - 缓存会话选择的模型实例
-        - 缓存失效策略
+        - 缓存官方模型列表（TTL: 5 分钟）
+        - 缓存激活模型列表（TTL: 2 分钟）
+        - 缓存会话选择的模型实例（TTL: 30 分钟）
+        - **缓存失效策略**：
+           - 事件触发失效（模型变更时）
+           - TTL 自动失效
+           - 手动刷新接口
+        - 缓存穿透保护（布隆过滤器）
+        - 缓存雪崩保护（随机 TTL 偏移）
 
 - [ ] 1.22 实现监控和日志
      【目标对象】`app/infrastructure/monitoring/llm_monitor.py`
      【修改目的】监控系统运行状态
      【修改方式】结构化日志和指标收集
-     【相关依赖】logging, prometheus_client
+     【相关依赖】logging, prometheus_client, structlog
      【修改内容】
-        - 实现应用日志
+        - 实现应用日志（结构化日志格式 JSON）
         - 实现审计日志（服务商和模型操作记录）
         - 实现性能监控（API 响应时间、路由选择时间）
         - 实现错误监控（异常捕获和告警）
         - 实现调用指标收集（成功率、延迟）
+        - **Prometheus 指标导出**：
+           - llm_request_total（请求总数）
+           - llm_request_duration（请求延迟）
+           - llm_request_errors（错误数）
+           - llm_fallback_total（降级次数）
+        - **告警集成**：对接告警系统（如钉钉、企业微信）
+
+- [ ] 1.23 API 安全增强
+     【目标对象】`app/api/v1/llm/`, `app/application/llm/assembler.py`
+     【修改目的】保护敏感信息，防止泄露
+     【修改方式】响应过滤和掩码处理
+     【相关依赖】Pydantic, Assembler
+     【修改内容】
+        - **API 响应掩码**：所有返回的 API Key 自动掩码（`******`）
+        - **敏感字段过滤**：不在响应中暴露内部配置
+        - **请求验证**：严格验证输入参数
+        - **限流中间件**：实现 API 限流
+        - **权限校验装饰器**：统一权限检查
+        - **Prometheus 指标导出**：
+           - llm_request_total（请求总数）
+           - llm_request_duration（请求延迟）
+           - llm_request_errors（错误数）
+           - llm_fallback_total（降级次数）
+        - **告警集成**：对接告警系统（如钉钉、企业微信）

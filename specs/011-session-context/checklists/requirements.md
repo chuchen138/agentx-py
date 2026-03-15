@@ -60,7 +60,7 @@
         - 实现 TokenCalculatorFactory
           * 根据模型名称选择计算器
 
-- [ ] 1.4 实现 Token 溢出处理策略
+- [ ] 3.4 实现 Token 溢出处理策略
      【目标对象】`app/domain/session/token/`
      【修改目的】处理 Token 超出限制的情况
      【修改方式】使用 Strategy 模式
@@ -69,14 +69,22 @@
         - 定义 TruncationStrategy 枚举
           * FROM_START - 从开头截断
           * FROM_END - 从尾部截断
-          * IMPORTANT_FIRST - 保留重要消息优先
+          * IMPORTANT_FIRST - 保留重要消息优先 (系统消息>用户消息>助手消息)
         - 定义 SummaryStrategy
-          * 对早期消息进行摘要
+          * 对早期消息进行摘要 (可配置摘要比例，默认 50%)
           * 保留摘要和重要消息
+          * 支持多轮摘要递归压缩
+        - 实现 RollingWindowStrategy
+          * 滑动窗口保留最近 N 轮对话 (可配置)
+          * 自动丢弃最早的消息
+        - 实现 HybridStrategy
+          * 组合多种策略：先滚动窗口，再摘要，最后截断
+          * 可配置策略优先级和参数
         - 实现 TokenOverflowHandler
           * 计算当前 Token 数量
-          * 应用溢出策略
+          * 应用溢出策略 (支持动态选择)
           * 返回处理后的消息列表
+          * 记录压缩日志和 Token 节省统计
 
 ### 2. 仓储层
 
@@ -127,11 +135,11 @@
 - [ ] 3.1 实现会话管理器
      【目标对象】`app/domain/session/service.py`
      【修改目的】管理活跃会话的生命周期
-     【修改方式】使用单例模式和 ConcurrentHashMap
+     【修改方式】使用单例模式和 asyncio.Lock 保证并发安全
      【相关依赖】SessionRepository, SSE
      【修改内容】
         - 创建 ChatSessionManager(单例)
-          * _sessions: ConcurrentMap[str, SessionInfo]
+          * _sessions: Dict[str, SessionInfo] (使用 asyncio.Lock 保护)
           * register_session(session_id, user_id, agent_id, sse_emitter) -> SessionInfo
           * unregister_session(session_id)
           * get_session(session_id) -> SessionInfo
@@ -146,22 +154,25 @@
 - [ ] 3.2 实现 SSE 消息推送服务
      【目标对象】`app/domain/session/service.py`
      【修改目的】通过 SSE 向客户端推送实时消息
-     【修改方式】使用 FastAPI SSE
+     【修改方式】使用 FastAPI StreamingResponse 或 Starlette EventSourceResponse
      【相关依赖】ChatSessionManager, FastAPI
      【修改内容】
         - 实现 SSEMessageService
           * send_message(session_id, message_type, data)
             - 查找会话信息
             - 检查会话状态
-            - 发送 SSE 事件
+            - 发送 SSE 事件 (JSON 格式：{event, data, id})
             - 处理发送失败
           * send_text_message(session_id, text)
           * send_error_message(session_id, error_message)
           * send_session_end(session_id)
+          * send_heartbeat() - 每 30 秒发送心跳
         - 实现 SSE 连接管理
           * on_completion 回调清理
           * on_timeout 回调清理
           * on_error 回调处理
+          * 连接池管理：限制单节点最大连接数 (如 50000)
+          * 连接泄漏防护：超时自动断开并释放资源
 
 - [ ] 3.3 实现 Token 管理服务
      【目标对象】`app/domain/session/service.py`
@@ -326,13 +337,19 @@
 - [ ] 6.1 实现 SSE 配置
      【目标对象】`app/infrastructure/config/`
      【修改目的】配置 SSE 连接参数
-     【修改方式】使用配置文件
+     【修改方式】使用配置文件 (YAML/环境变量)
      【相关依赖】无
      【修改内容】
-        - sse.timeout - SSE 超时时间 (秒)
-        - sse.heartbeat.interval - 心跳间隔 (毫秒)
-        - sse.reconnect.max_retries - 最大重连次数
-        - sse.reconnect.backoff - 重连退避时间 (毫秒)
+        - sse.timeout - SSE 超时时间 (秒，默认 300)
+        - sse.heartbeat.interval - 心跳间隔 (毫秒，默认 30000)
+        - sse.reconnect.max_retries - 最大重连次数 (默认 3)
+        - sse.reconnect.backoff - 重连退避时间 (毫秒，默认 1000)
+        - sse.auth.enabled - 是否启用连接认证 (默认 true)
+        - sse.auth.type - 认证类型：jwt | api_key
+        - sse.max_connections - 单节点最大连接数 (默认 50000)
+        - sse.compression.enabled - 是否启用消息压缩 (默认 true)
+        - sse.compression.algorithm - 压缩算法：gzip | lz4 (默认 gzip)
+        - sse.compression.threshold - 压缩阈值 (字节，默认 1024)
 
 - [ ] 6.2 实现会话配置
      【目标对象】`app/infrastructure/config/`
@@ -444,10 +461,12 @@
      【相关依赖】ChatSessionManager
      【修改内容】
         - 测试高并发会话创建
-        - 测试大量 SSE 连接
+        - 测试大量 SSE 连接 (模拟 10000+ 并发)
         - 测试 Token 计算性能
         - 测试内存使用情况
         - 测试清理任务效率
+        - 测试极端场景：超长上下文导致 OOM 的防护
+        - 测试网络抖动下的 SSE 重连
 
 ### 9. 监控和日志
 
@@ -493,6 +512,10 @@
           * Token 超出限制时抛出
         - SSEConnectionException (500)
           * SSE 连接失败时抛出
+        - AuthenticationFailedException (401)
+          * SSE 连接认证失败时抛出
+        - RateLimitExceededException (429)
+          * 请求频率超过限制时抛出
 
 - [ ] 10.2 实现错误处理中间件
      【目标对象】`app/api/middleware/`
@@ -507,8 +530,11 @@
         - 捕获 SSE 相关异常
           * 记录日志
           * 清理会话资源
+        - 捕获 AuthenticationFailedException
+          * 返回 401 错误，拒绝连接
         - 降级处理
           * Token 计算失败降级到长度估算
+          * Redis 不可用时降级到内存模式
 
 ### 11. 性能优化
 
@@ -538,10 +564,12 @@
 - [ ] 11.3 实现并发控制
      【目标对象】`app/domain/session/`
      【修改目的】保证并发安全
-     【修改方式】使用线程安全数据结构
-     【相关依赖】concurrent.futures
+     【修改方式】使用 asyncio.Lock 和线程安全数据结构
+     【相关依赖】asyncio
      【修改内容】
-        - ConcurrentHashMap 存储会话
-        - 异步执行耗时操作
-        - 限流控制 (最大并发会话数)
-        - 防止并发重复请求
+        - 使用 asyncio.Lock 保护共享会话字典
+        - 异步执行耗时操作 (使用 asyncio.create_task)
+        - 限流控制：使用 asyncio.Semaphore 限制最大并发会话数
+        - 防止并发重复请求：使用请求去重表 (Redis SETNX)
+        - 分布式锁：使用 Redis Lock 保证跨节点操作原子性
+        - 乐观锁：版本号控制，防止更新冲突

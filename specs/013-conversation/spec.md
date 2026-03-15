@@ -4,6 +4,14 @@
 
 对话管理模块（Conversation Management）是 AgentX 平台的核心能力，负责管理和处理用户与智能体之间的所有交互。该模块提供了多种聊天模式、灵活的会话管理机制、强大的消息处理能力，支持从简单的问答到复杂的工具调用工作流等多种对话场景。
 
+### 模块职责边界
+
+- **013-conversation**: 对话流程控制、聊天模式路由、消息接收/响应
+- **014-agent-workflow**: 复杂任务编排引擎（任务拆分、依赖管理、并行调度）
+- **018-task-management**: 任务/工作流持久化、状态存储、执行追踪
+
+**注意**：当用户请求识别为复杂任务时，本模块将委托给 014-agent-workflow 模块进行编排处理。
+
 ## 核心能力
 
 ### 1. 多种聊天模式
@@ -16,11 +24,17 @@
 
 #### 1.2 Agent 智能体模式
 - 支持工具调用的复杂任务处理
-- 任务自动拆分与执行
-- 工作流管理（分析、执行、汇总）
+- **简单任务**：直接在本模块内处理（单步工具调用）
+- **复杂任务**：委托给 014-agent-workflow 模块（多步骤、有依赖关系）
 - 内置工具和外部工具集成
 - 事件驱动的状态转换
 - 用户可用工具管理
+
+**与 014 的协作**：
+- 013 负责接收用户消息并判断是否为复杂任务
+- 复杂任务委托给 014 进行编排（任务拆分、并行执行）
+- 014 通过事件总线通知 013 任务进展
+- 最终结果由 013 返回给用户
 
 #### 1.3 RAG 检索增强模式
 - 基于知识库的问答
@@ -222,7 +236,7 @@
 - SessionEntity - 会话实体
 - MessageEntity - 消息实体
 - ContextEntity - 上下文实体
-- 基于 MyBatis-Plus 的数据持久化
+- 基于 SQLAlchemy 的数据持久化
 
 ### 4. 丰富的 DTO 定义
 - ChatRequest/Response - 基础请求/响应
@@ -265,28 +279,287 @@
 
 ## 技术约束
 
-### 性能要求
-- 单次消息响应时间 < 3 秒（首 Token）
-- 流式输出延迟 < 100ms
-- 支持 1000+ 并发会话
-- 消息持久化延迟 < 50ms
+### 技术栈要求
+- **核心框架**: FastAPI（异步 Web 框架）、Starlette（SSE 支持）
+- **通信协议**: 
+  - SSE（Server-Sent Events）优先 - 使用 sse-starlette 库实现流式响应
+  - WebSocket 备选 - 使用 fastapi-websockets 实现双向通信
+  - HTTP/REST - 标准 API 接口
+- **异步处理**: asyncio + async/await 语法
+- **数据验证**: Pydantic v2（模型验证和序列化）
+- **ORM 框架**: SQLAlchemy 2.0（异步 ORM）
+- **缓存**: Redis（会话缓存、分布式锁）
+- **限流中间件**: slowapi（速率限制）
+
+### 模式切换规则
+聊天模式由以下优先级自动选择：
+1. **预览模式** (最高优先级): 当请求包含 `preview=true` 参数时
+2. **RAG 模式**: 当请求包含 `rag_id` 且智能体配置了 RAG 能力时
+3. **Agent 模式**: 当智能体配置了工具且 `chat_mode="agent"` 时
+4. **标准模式** (默认): 其他情况
+
+模式处理器注册表采用工厂模式 + 字典注册，支持动态扩展。
+
+### 性能指标
+
+#### 响应延迟（P95）
+- **首 Token延迟**:
+  - 标准对话：< 500ms
+  - Agent 模式：< 800ms（包括工具调用准备）
+  - RAG 模式：< 1s（包括检索时间）
+  - 预览模式：< 600ms
+- **流式响应chunk间隔**: 100-200ms（逐 Token 输出）
+- **SSE 推送延迟**: < 100ms
+- **WebSocket 消息处理**: < 50ms
+
+#### 并发能力
+- **最大并发对话数**: 单实例 1000+ 活跃会话
+- **SSE 连接数**: 单实例 5000+ 并发连接
+- **消息吞吐量**: 1000+ 消息/秒
+- **水平扩展**: 支持集群部署，线性扩展
+
+#### 持久化性能
+- **消息持久化延迟**: < 50ms（异步批量提交）
+- **会话创建延迟**: < 30ms
+- **历史消息查询**: < 200ms（100 条以内）
+
+#### 连接管理
+- **WebSocket 心跳间隔**: 30s
+- **SSE 超时检测**: 90s 无活动自动断开
+- **断线重连**: 支持 last-event-id 恢复（最多重试 3 次）
 
 ### 可用性要求
-- 系统可用性 > 99.5%
-- 故障恢复时间 < 30s
-- 无单点故障
+- **系统可用性**: > 99.5%
+- **故障恢复时间**: < 30s
+- **无单点故障**: 支持多实例部署 + Redis 哨兵
+- **降级策略**: Redis 不可用时降级到内存模式
 
 ### 安全性要求
-- 用户数据隔离
-- 会话访问权限控制
-- 敏感信息过滤
-- 审计日志记录
 
-### 扩展性要求
-- 支持水平扩展
-- 支持插件式处理器扩展
-- 支持自定义消息类型
-- 支持多租户架构
+#### 多租户数据隔离
+- **实现方式**: SQLAlchemy 查询过滤（行级隔离）
+- **过滤条件**: 所有查询强制添加 `user_id` 和 `tenant_id` 过滤
+- **会话访问控制**: 用户只能访问自己的会话（基于 JWT 身份验证）
+- **审计日志**: 记录所有会话操作（保留 90 天）
+
+#### 输入安全
+- **消息长度限制**: 用户输入 ≤ 4000 tokens
+- **防 Prompt 注入**: 正则检测恶意注入模式（如忽略指令、角色扮演攻击）
+- **敏感词过滤**: 可配置的敏感词库（支持正则匹配）
+- **文件上传限制**: 单文件 ≤ 10MB，类型白名单
+
+#### 工具调用安全
+- **白名单校验**: 仅允许调用已注册的工具
+- **结果过滤**: 工具返回结果必须通过安全过滤
+- **权限验证**: 每次调用验证用户工具访问权限
+- **沙箱执行**: 高风险工具在隔离容器执行
+- **调用频率限制**: 单用户每分钟 ≤ 60 次工具调用
+
+#### 连接安全
+- **JWT 认证**: SSE/WebSocket 连接需验证 Token
+- **防 CSRF**: 同源策略 + CSRF Token 双重验证
+- **防会话劫持**: session_id 使用加密 UUID（32 位以上）
+- **速率限制**: 单用户每秒 ≤ 5 个会话创建
+
+### 可扩展性设计
+
+#### 消息处理器扩展
+- **注册表机制**: 基于工厂模式 + 字典注册
+- **插件接口**: 继承 AbstractMessageHandler 抽象基类
+- **发现机制**: 基于 Python entry_points 自动发现插件
+- **热加载**: 监听 plugins 目录变化，动态加载新处理器
+- **优先级**: 支持设置处理器优先级（数字越小优先级越高）
+
+#### 自定义消息类型
+- **扩展方式**: 继承 MessageType 枚举
+- **处理器绑定**: 为新消息类型注册专用处理器
+- **向后兼容**: 旧版本自动忽略不支持的消息类型
+
+#### 自定义工具扩展
+- **实现接口**: 实现 Tool 基类的 call 方法
+- **注册机制**: 使用装饰器或配置文件注册
+- **元数据**: 提供工具描述、参数 schema、使用示例
+
+### 范围边界
+
+#### 与 011-session-context 的边界
+**011 负责（存储层）**:
+- 会话数据结构定义（Session/Message/Context Entity）
+- 会话 CRUD 操作（创建、查询、更新、删除）
+- 上下文窗口管理和 Token 计算策略
+- 历史消息持久化和分页查询
+- SSE 连接管理和心跳机制
+
+**013 负责（交互层）**:
+- 聊天模式编排和处理器调度
+- 流式响应逻辑（SSE/WebSocket 事件流）
+- 工具调用链路集成和执行追踪
+- Agent 工作流集成（调用 014 的能力）
+- RAG 检索增强集成
+- 记忆提取和注入逻辑
+- 计费集成（Token 统计上报）
+
+**依赖关系**: 013 依赖 011 的存储能力，013 是 011 的上层编排
+
+#### 与 014-agent-workflow 的边界
+**014 负责（工作流引擎）**:
+- 任务拆分算法（LLM 驱动的任务分解）
+- 工作流状态机（INIT → ANALYZING → SPLITTING → EXECUTING → SUMMARIZING → COMPLETED）
+- 任务调度和依赖管理
+- 并行任务执行协调
+- 工作流事件总线
+
+**013 负责（对话集成）**:
+- 将 Agent 工作流集成到对话流程
+- 接收 014 的事件并转换为对话消息
+- 向用户展示任务执行进度
+- 汇总工作流结果并返回
+- 中断信号传递给工作流
+
+**依赖关系**: 013 调用 014 的工作流能力，014 是独立的工作流引擎
+
+#### 与 012-memory 的边界
+**012 负责（长期记忆）**:
+- 记忆的提取、存储和检索
+- 语义相似度匹配
+- 记忆向量数据库管理
+
+**013 负责（短期上下文）**:
+- 从当前对话中提取关键信息（调用 012 的接口）
+- 将相关记忆注入到系统提示
+- 会话结束后异步同步重要信息到 012
+
+#### 与 016-execution-trace 的边界
+**016 负责（追踪基础设施）**:
+- 追踪上下文管理
+- 追踪数据存储
+- 追踪查询 API
+
+**013 负责（对话追踪）**:
+- 创建对话追踪上下文
+- 记录模型调用、工具调用的详细信息
+- 标记执行阶段（分析、执行、汇总）
+
+### 典型场景示例
+
+#### 示例 1：标准对话模式请求/响应
+**请求**:
+```json
+POST /api/v1/sessions/{sessionId}/chat
+{
+  "content": "你好，介绍一下你自己",
+  "stream": false
+}
+```
+
+**响应**:
+```json
+{
+  "session_id": "sess_abc123",
+  "message_id": "msg_xyz789",
+  "role": "assistant",
+  "content": "你好！我是 AgentX 智能助手...",
+  "token_usage": {
+    "prompt_tokens": 50,
+    "completion_tokens": 100,
+    "total_tokens": 150
+  },
+  "finish_reason": "stop"
+}
+```
+
+#### 示例 2：Agent 模式流式响应（SSE 事件流）
+**SSE 事件序列**:
+```
+event: start
+data: {"session_id":"sess_001","message_id":"msg_001"}
+
+event: thought
+data: {"type":"analysis","content":"用户需要查询天气..."}
+
+event: tool_call
+data: {"tool_name":"weather_query","arguments":{"city":"北京"}}
+
+event: tool_result
+data: {"tool_name":"weather_query","result":"晴，25°C"}
+
+event: token
+data: {"content":"今"}
+
+event: token
+data: {"content":"天"}
+
+event: token
+data: {"content":"北"}
+
+event: token
+data: {"content":"京"}
+
+event: token
+data: {"content":"天"}
+
+event: token
+data: {"content":"气"}
+
+event: end
+data: {"finish_reason":"stop","token_usage":{"total_tokens":200}}
+```
+
+#### 示例 3：RAG 模式请求/响应
+**请求**:
+```json
+POST /api/v1/rag/{ragId}/chat
+{
+  "content": "公司的年假政策是什么？",
+  "stream": true,
+  "retrieval_params": {
+    "top_k": 3,
+    "similarity_threshold": 0.7
+  }
+}
+```
+
+**SSE 事件流**:
+```
+event: retrieval_start
+data: {"query":"年假政策","datasets":["员工手册"]}
+
+event: retrieval_progress
+data: {"stage":"searching","progress":0.5}
+
+event: retrieval_end
+data: {"documents":[{"content":"...","score":0.92}]}
+
+event: thinking_start
+data: {}
+
+event: thinking_progress
+data: {"content":"正在分析文档..."}
+
+event: thinking_end
+data: {}
+
+event: answer_start
+data: {}
+
+event: token
+data: {"content":"根"}
+event: token
+data: {"content":"据"}
+// ... 更多 token
+event: answer_end
+data: {"token_usage":{"total_tokens":350}}
+```
+
+#### 示例 4：工具调用安全校验
+**校验流程**:
+1. 解析 LLM 返回的工具调用请求
+2. 检查工具是否在已注册工具列表中
+3. 验证用户是否有该工具的访问权限
+4. 检查工具调用频率是否超限
+5. 执行工具调用（沙箱环境）
+6. 过滤工具返回结果（移除敏感信息）
+7. 将安全的结果返回给 LLM
 
 ## 依赖能力
 

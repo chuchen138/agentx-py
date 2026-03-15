@@ -2,62 +2,580 @@
 
 ## 概述
 
-规则引擎模块采用分层架构设计，遵循领域驱动设计（DDD）原则，提供灵活的规则定义、配置和执行能力。
+规则引擎模块采用分层架构设计，遵循领域驱动设计（DDD）原则，提供灵活的规则定义、配置和执行能力。使用 Python + FastAPI + SQLAlchemy 技术栈，集成 Redis 缓存和 Prometheus 监控。
 
 ## 技术架构
 
 ### 架构分层
 
-系统采用四层架构：接口层处理 HTTP 请求，定义 DTO，参数校验；应用层负责业务流程编排，DTO 转换，调用领域服务（RuleAppService）；领域层包含核心业务逻辑，实体模型，领域服务，枚举定义（RuleEntity、RuleHandlerKey、RuleDomainService）；基础设施层负责数据库访问，数据持久化（RuleRepository、RuleMapper）。
+```
+┌─────────────────────────────────────────┐
+│         接口层 (Interfaces)             │
+│  - REST API (FastAPI)                   │
+│  - GraphQL (可选)                        │
+└─────────────────────────────────────────┘
+              ↓
+┌─────────────────────────────────────────┐
+│        应用层 (Application)             │
+│  - RuleAppService                       │
+│  - DTOs, Assemblers                     │
+│  - Use Cases                            │
+└─────────────────────────────────────────┘
+              ↓
+┌─────────────────────────────────────────┐
+│         领域层 (Domain)                 │
+│  - Entities: RuleEntity                 │
+│  - Value Objects: RuleContext, Result   │
+│  - Services: RuleDomainService          │
+│  - Handlers: IRuleHandler               │
+│  - Factory: RuleHandlerFactory          │
+│  - Engine: RuleEngine                   │
+└─────────────────────────────────────────┘
+              ↓
+┌─────────────────────────────────────────┐
+│      基础设施层 (Infrastructure)        │
+│  - Repositories: RuleRepository         │
+│  - Cache: Redis + Local LRU             │
+│  - Monitoring: Prometheus               │
+│  - Database: MySQL (SQLAlchemy)         │
+└─────────────────────────────────────────┘
+```
 
 ### 核心组件
 
-RuleAppService 负责规则相关的业务流程编排，包括创建规则、更新规则、查询规则列表、获取规则详情、根据处理器标识查询规则和获取所有规则。RuleDomainService 负责规则的领域逻辑处理，包括规则的创建和更新、规则的持久化和规则的查询。
+**RuleAppService**: 应用服务层，负责业务流程编排
+- 创建/更新/删除规则
+- 查询规则列表和详情
+- 规则版本管理
+- 规则启用/禁用
+
+**RuleDomainService**: 领域服务层，负责核心业务逻辑
+- 规则验证（含安全检查）
+- 规则持久化
+- 规则冲突解决
+- 审计日志记录
+
+**RuleHandlerFactory**: 策略工厂，负责处理器注册和查找
+- 自动发现并注册处理器（装饰器模式）
+- 根据 handlerKey 获取处理器实例
+- 处理器生命周期管理
+
+**RuleEngine**: 规则执行引擎
+- 规则加载（带缓存）
+- 规则执行（单个/批量）
+- 超时控制
+- 失败重试
 
 ## 核心设计
 
-### 规则实体和枚举
+### 数据模型设计
 
-规则实体定义了规则的基本结构，包括唯一 ID、规则名称、规则处理器标识和规则描述。RuleHandlerKey 枚举定义了所有支持的规则处理器，包括模型使用计费、Agent 创建计费、API 调用计费和存储使用计费。使用枚举定义规则类型具有类型安全、避免字符串硬编码错误、便于 IDE 自动补全和方便扩展新规则类型的优势。
+#### RuleEntity（规则实体）
 
-### 策略模式
+```python
+from sqlalchemy import Column, String, Boolean, Integer, DateTime, JSON, Index
+from sqlalchemy.ext.declarative import declarative_base
+import uuid
+from datetime import datetime
 
-系统使用策略模式实现规则的处理逻辑。规则定义通过 RuleEntity 定义，通过 handlerKey 标识规则类型，策略工厂根据 handlerKey 获取对应的策略处理器，使用处理器执行具体的业务逻辑。策略模式的优势包括新增规则类型只需添加新的策略实现、符合开闭原则、策略可以独立测试和维护。
+Base = declarative_base()
 
-### 数据持久化
+class RuleEntity(Base):
+    __tablename__ = "rules"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = Column(String(200), nullable=False, index=True)
+    handler_key = Column(String(100), nullable=False, index=True)
+    description = Column(String(500))
+    config = Column(JSON, nullable=False, default=dict)
+    enabled = Column(Boolean, default=True, index=True)
+    priority = Column(Integer, default=0, comment="优先级，越高越优先")
+    version = Column(Integer, default=1, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_by = Column(String(100), comment="最后更新人邮箱")
+    
+    # 索引
+    __table_args__ = (
+        Index('idx_handler_key_version', 'handler_key', 'version'),
+        Index('idx_enabled_priority', 'enabled', 'priority'),
+    )
+```
 
-系统设计了规则表结构，包含规则 ID、名称、处理器标识、描述和创建更新时间，并为常用查询字段建立索引。使用 MyBatis 的 TypeHandler 将枚举类型与数据库字符串类型转换。查询实现支持按处理器标识和关键词模糊查询，使用分页查询和结果转换。
+#### RuleVersionEntity（规则版本快照）
+
+```python
+class RuleVersionEntity(Base):
+    __tablename__ = "rule_versions"
+    
+    id = Column(String(36), primary_key=True)
+    rule_id = Column(String(36), ForeignKey("rules.id"), nullable=False)
+    version = Column(Integer, nullable=False)
+    snapshot = Column(JSON, nullable=False, comment="规则完整快照")
+    changed_by = Column(String(100))
+    changed_at = Column(DateTime, default=datetime.utcnow)
+    change_reason = Column(String(500))
+```
+
+#### RuleAuditLogEntity（审计日志）
+
+```python
+class RuleAuditLogEntity(Base):
+    __tablename__ = "rule_audit_logs"
+    
+    id = Column(String(36), primary_key=True)
+    rule_id = Column(String(36), nullable=False, index=True)
+    action = Column(String(50), nullable=False)  # CREATE/UPDATE/DELETE/EXECUTE
+    old_value = Column(JSON, comment="修改前的值")
+    new_value = Column(JSON, comment="修改后的值")
+    operator = Column(String(100), nullable=False)
+    operated_at = Column(DateTime, default=datetime.utcnow, index=True)
+    ip_address = Column(String(45))
+```
+
+### 策略模式实现
+
+#### 处理器注册机制
+
+```python
+# app/domain/rule/handler/__init__.py
+from typing import Type, Dict
+from abc import ABC, abstractmethod
+
+class IRuleHandler(ABC):
+    """规则处理器接口"""
+    
+    @abstractmethod
+    def get_handler_key(self) -> str:
+        pass
+    
+    @abstractmethod
+    async def execute(self, context: RuleContext, rule_config: Dict) -> RuleResult:
+        pass
+
+# 装饰器定义
+def rule_handler(handler_key: str):
+    """规则处理器注册装饰器"""
+    def decorator(cls: Type[IRuleHandler]) -> Type[IRuleHandler]:
+        RuleHandlerFactory.register(cls())
+        return cls
+    return decorator
+
+# 使用示例
+@rule_handler("MODEL_USAGE_BILLING")
+class ModelUsageBillingHandler(IRuleHandler):
+    def get_handler_key(self) -> str:
+        return "MODEL_USAGE_BILLING"
+    
+    async def execute(self, context: RuleContext, rule_config: Dict) -> RuleResult:
+        # 实现计费逻辑
+        pass
+```
+
+#### 处理器自动发现
+
+```python
+# app/domain/rule/handler/__init__.py
+import importlib
+import pkgutil
+
+def auto_discover_handlers():
+    """自动发现并注册所有规则处理器"""
+    package = importlib.import_module("app.domain.rule.handler")
+    for _, name, is_pkg in pkgutil.iter_modules(package.__path__, package.__name__ + "."):
+        if is_pkg or name.endswith(".builtin"):
+            importlib.import_module(name)
+
+# 在应用启动时调用
+# auto_discover_handlers()
+```
 
 ### 缓存策略
 
-使用 Spring Cache 抽象，支持多种缓存实现，缓存 key 为 handlerKey。
+#### 多级缓存设计
 
-## 关键设计决策
+```python
+# app/infrastructure/cache/rule_cache.py
+import redis
+from collections import OrderedDict
+from typing import Optional
+import json
 
-规则配置化可以避免代码变更，降低运维成本。规则定义存储在数据库，通过 handlerKey 映射到具体的处理逻辑，支持在线配置和即时生效。使用 Assembler 模式分离领域实体和 DTO，避免领域实体泄露到应用层，保持清晰的分层。
+class LRUCache:
+    """本地 LRU 缓存"""
+    def __init__(self, maxsize=100):
+        self.cache = OrderedDict()
+        self.maxsize = maxsize
+    
+    def get(self, key: str) -> Optional[RuleEntity]:
+        if key in self.cache:
+            self.cache.move_to_end(key)
+            return self.cache[key]
+        return None
+    
+    def set(self, key: str, value: RuleEntity):
+        if key in self.cache:
+            self.cache.move_to_end(key)
+        else:
+            if len(self.cache) >= self.maxsize:
+                self.cache.popitem(last=False)
+            self.cache[key] = value
+    
+    def pop(self, key: str):
+        self.cache.pop(key, None)
 
-## 性能优化
+class RuleCache:
+    """规则多级缓存"""
+    
+    def __init__(self):
+        self.local_cache = LRUCache(maxsize=100)
+        self.redis_client = redis.Redis(host='localhost', port=6379, db=0)
+    
+    async def get(self, handler_key: str) -> Optional[RuleEntity]:
+        # 1. 尝试本地缓存
+        if rule := self.local_cache.get(handler_key):
+            metrics.cache_local_hit.inc()
+            return rule
+        
+        # 2. 尝试 Redis 缓存
+        cached = await self.redis_client.get(f"rule:{handler_key}")
+        if cached:
+            rule = RuleEntity(**json.loads(cached))
+            self.local_cache.set(handler_key, rule)
+            metrics.cache_redis_hit.inc()
+            return rule
+        
+        # 3. 从数据库加载
+        rule = await repository.get_by_handler_key(handler_key)
+        if rule:
+            # 写入两级缓存
+            await self.redis_client.setex(
+                f"rule:{handler_key}", 
+                ttl=300,  # 5 分钟
+                value=json.dumps(rule.dict())
+            )
+            self.local_cache.set(handler_key, rule)
+            metrics.cache_miss.inc()
+        
+        return rule
+    
+    async def invalidate(self, handler_key: str):
+        """缓存失效"""
+        await self.redis_client.delete(f"rule:{handler_key}")
+        self.local_cache.pop(handler_key, None)
+        # 发布失效通知
+        await self.redis_client.publish("rule:invalidated", handler_key)
+```
 
-系统采用多种性能优化策略，包括使用 Spring Cache 抽象、为常用查询字段建立索引支持高效的查询、支持批量查询规则减少数据库访问次数。
+#### 缓存预热
 
-## 扩展性设计
-
-新增规则类型的步骤包括在 RuleHandlerKey 枚举中添加枚举值、创建对应的策略实现类、在策略工厂中注册策略，然后可以通过数据库创建规则实例。通过继承 RuleEntity 可以支持规则版本，查询时取最新且激活的规则版本。通过 JSON 字段存储规则配置，支持灵活的规则配置，无需频繁修改表结构。
-
-## 集成与安全
-
-### 模块集成
-
-计费能力使用规则引擎配置计费策略。计费服务根据产品类型查询对应的 handlerKey，从规则引擎获取规则配置，使用策略工厂获取计费策略，执行计费计算。权限管理使用规则引擎配置权限策略，根据功能类型查询权限规则，应用权限规则进行验证。其他业务模块可以定义自己的规则处理器标识，实现对应的策略处理器，在业务场景中应用规则。
+```python
+async def warmup_cache():
+    """启动时预热缓存"""
+    all_enabled_rules = await repository.list(enabled=True)
+    for rule in all_enabled_rules:
+        await cache.set(rule.handler_key, rule)
+```
 
 ### 安全设计
 
-规则管理接口需要管理员权限，规则查询接口需要相应权限。记录规则创建、更新和删除操作，支持操作追溯。验证 handlerKey 是否合法，验证规则名称不为空，验证描述长度限制。
+#### 规则内容校验
+
+```python
+# app/domain/rule/validator.py
+import json
+import ast
+from typing import Dict
+
+class RuleValidator:
+    """规则验证器"""
+    
+    # 黑名单：禁止的 Python 关键字
+    FORBIDDEN_KEYWORDS = [
+        'eval', 'exec', 'compile', '__import__', 
+        'globals', 'locals', 'getattr', 'setattr',
+        'delattr', 'vars', 'dir', 'breakpoint'
+    ]
+    
+    # 白名单：允许的 simpleeval 函数
+    ALLOWED_FUNCTIONS = ['abs', 'round', 'min', 'max', 'sum', 'len']
+    
+    @staticmethod
+    def validate_config(config: Dict) -> None:
+        """验证规则配置安全性"""
+        config_str = json.dumps(config)
+        
+        # 检查黑名单关键字
+        for keyword in RuleValidator.FORBIDDEN_KEYWORDS:
+            if keyword in config_str:
+                raise RuleValidationError(
+                    f"Forbidden keyword detected: {keyword}",
+                    error_code="SECURITY_VIOLATION"
+                )
+        
+        # 如果需要使用表达式，限制使用 simpleeval
+        if "expression" in config:
+            RuleValidator._validate_expression(config["expression"])
+    
+    @staticmethod
+    def _validate_expression(expr: str) -> None:
+        """验证表达式安全性"""
+        from simpleeval import Expr, Name, Call
+        
+        try:
+            expr_obj = Expr.parse(expr)
+            # 遍历 AST，检查节点类型
+            for node in ast.walk(expr_obj):
+                if isinstance(node, ast.Call):
+                    # 检查调用的函数是否在白名单中
+                    if isinstance(node.func, ast.Name):
+                        if node.func.id not in RuleValidator.ALLOWED_FUNCTIONS:
+                            raise RuleValidationError(
+                                f"Function not allowed: {node.func.id}"
+                            )
+        except Exception as e:
+            raise RuleValidationError(f"Invalid expression: {str(e)}")
+```
+
+#### 沙箱执行
+
+```python
+# app/domain/rule/safe_executor.py
+from simpleeval import SimpleEval
+import ast
+
+class SafeRuleExecutor:
+    """安全规则执行器"""
+    
+    def __init__(self):
+        self.s_eval = SimpleEval()
+        self.s_eval.functions.update({
+            'abs': abs,
+            'round': round,
+            'min': min,
+            'max': max,
+        })
+        # 限制可用的操作符
+        self.s_eval.operators.update({
+            ast.Add: self.safe_add,
+            ast.Sub: self.safe_sub,
+            ast.Mult: self.safe_mult,
+            ast.Div: self.safe_div,
+        })
+    
+    def safe_add(self, a, b):
+        # 防止溢出等安全检查
+        return a + b
+    
+    def safe_sub(self, a, b):
+        return a - b
+    
+    def safe_mult(self, a, b):
+        return a * b
+    
+    def safe_div(self, a, b):
+        if b == 0:
+            raise RuleExecutionError("Division by zero", "DIVISION_BY_ZERO")
+        return a / b
+    
+    def evaluate(self, expression: str, context: Dict) -> any:
+        """安全地执行表达式"""
+        self.s_eval.names = context
+        try:
+            return self.s_eval.eval(expression)
+        except Exception as e:
+            raise RuleExecutionError(
+                f"Rule execution failed: {str(e)}",
+                error_code="EXECUTION_ERROR"
+            )
+```
 
 ### 数据一致性
 
-规则创建和更新使用事务，确保数据完整性，支持事务回滚。使用乐观锁避免并发更新冲突，通过 version 字段实现。
+#### 乐观锁实现
 
-## 技术栈
+```python
+# app/domain/rule/repository.py
+from sqlalchemy.ext.asyncio import AsyncSession
 
-Spring Boot、MyBatis-Plus、Spring Cache（支持 Redis、Caffeine）、MySQL、Spring IoC。
+class RuleRepository:
+    async def update(self, rule: RuleEntity, session: AsyncSession) -> RuleEntity:
+        """更新规则（乐观锁）"""
+        async with session.begin():
+            # 检查版本号
+            existing = await self.get(rule.id, session)
+            if existing.version != rule.version:
+                raise ConcurrencyError(
+                    f"Rule version conflict: expected {rule.version}, "
+                    f"but got {existing.version}"
+                )
+            
+            # 递增版本号
+            rule.version = existing.version + 1
+            
+            # 创建版本快照
+            version_snapshot = RuleVersionEntity(
+                rule_id=rule.id,
+                version=rule.version,
+                snapshot=rule.dict(),
+                changed_by=rule.updated_by,
+                change_reason="Update"
+            )
+            
+            # 保存规则和版本快照
+            session.add(rule)
+            session.add(version_snapshot)
+            
+            return rule
+```
+
+#### 事务管理
+
+```python
+from contextlib import asynccontextmanager
+from sqlalchemy.ext.asyncio import AsyncSession
+
+@asynccontextmanager
+async def transactional(session: AsyncSession):
+    """事务管理器"""
+    async with session.begin() as tx:
+        try:
+            yield tx
+            await session.commit()
+        except Exception as e:
+            await session.rollback()
+            raise
+```
+
+## 性能优化
+
+### 批量查询优化
+
+```python
+class RuleService:
+    async def get_rules_batch(self, handler_keys: List[str]) -> Dict[str, RuleEntity]:
+        """批量获取规则"""
+        # 一次性查询所有规则，避免 N+1 问题
+        rules = await repository.list_by_handler_keys(handler_keys)
+        return {r.handler_key: r for r in rules}
+```
+
+### 异步执行
+
+```python
+import asyncio
+
+class RuleEngine:
+    async def execute_batch(
+        self, 
+        requests: List[Tuple[str, RuleContext]]
+    ) -> List[RuleResult]:
+        """批量异步执行规则"""
+        tasks = [
+            self.execute(handler_key, context)
+            for handler_key, context in requests
+        ]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # 处理异常
+        processed_results = []
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                processed_results.append(RuleResult(
+                    allowed=False,
+                    reason=f"Execution error: {str(result)}",
+                    data={"request_index": i}
+                ))
+            else:
+                processed_results.append(result)
+        
+        return processed_results
+```
+
+## 扩展性设计
+
+### 新增规则类型的步骤
+
+1. 定义新的 handlerKey（在 RuleHandlerKey 常量类中）
+2. 创建处理器实现类，继承 `IRuleHandler`
+3. 使用 `@rule_handler` 装饰器注册
+4. 通过数据库 API 创建规则实例
+
+### 规则版本演进
+
+```python
+class RuleEntity:
+    # 支持版本字段
+    version: int
+    
+    # 支持继承扩展
+    class Config:
+        extra = "allow"  # 允许额外字段
+```
+
+### 插件化架构（未来）
+
+未来可支持外部插件形式的规则处理器：
+- 从指定目录动态加载 `.py` 文件
+- 通过 gRPC 调用外部规则引擎服务
+- WebAssembly 沙箱执行自定义规则
+
+## 监控与可观测性
+
+### 指标收集
+
+```python
+# app/infrastructure/monitoring/rule_metrics.py
+from prometheus_client import Counter, Histogram, Gauge
+
+# 规则执行次数
+rule_execution_total = Counter(
+    'rule_execution_total',
+    'Total rule executions',
+    ['handler_key', 'result']
+)
+
+# 规则执行延迟
+rule_execution_latency = Histogram(
+    'rule_execution_latency_seconds',
+    'Rule execution latency',
+    ['handler_key'],
+    buckets=[0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0]
+)
+
+# 缓存命中率
+cache_hit_ratio = Gauge(
+    'rule_cache_hit_ratio',
+    'Rule cache hit ratio',
+    ['cache_layer']  # local, redis
+)
+```
+
+### 分布式追踪
+
+```python
+from opentelemetry import trace
+
+tracer = trace.get_tracer(__name__)
+
+class RuleEngine:
+    @tracer.start_as_current_span("rule_execute")
+    async def execute(self, handler_key: str, context: RuleContext) -> RuleResult:
+        span = trace.get_current_span()
+        span.set_attribute("rule.handler_key", handler_key)
+        span.set_attribute("rule.context.user_id", context.user_id)
+        
+        # ... 执行逻辑
+```
+
+## 技术栈总结
+
+- **Web 框架**: FastAPI 0.104+
+- **ORM**: SQLAlchemy 2.0 + AsyncSession
+- **缓存**: Redis 7.x + Caffeine (本地)
+- **数据库**: MySQL 8.0 / PostgreSQL 15
+- **监控**: Prometheus + Grafana
+- **追踪**: OpenTelemetry
+- **测试**: pytest + pytest-asyncio
+- **安全**: simpleeval, restrictedpython (可选)
+- **消息队列**: Redis Pub/Sub（缓存失效通知）

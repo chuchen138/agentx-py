@@ -1,5 +1,28 @@
 ## 实施
 
+**核心依赖：**
+- Python >= 3.9
+- SQLAlchemy >= 2.0
+- FastAPI >= 0.100
+- LangChain >= 0.1 或 LlamaIndex >= 0.9
+- pgvector >= 0.2.0
+- psycopg2-binary >= 2.9
+- pypdf >= 3.0
+- python-docx >= 0.8
+- Tesseract OCR (pytesseract) 或 EasyOCR
+- RabbitMQ / Redis (Celery)
+
+**可选依赖：**
+- sentence-transformers (用于重排序)
+- MinIO Client (用于对象存储)
+- ClamAV (用于病毒扫描)
+
+---
+
+---
+
+## 第一阶段：领域层和数据模型
+
 - [ ] 1.1 创建 Python RAG 模块目录结构
      【目标对象】`app/rag/`
      【修改目的】搭建 RAG 模块的基础目录结构
@@ -16,7 +39,7 @@
      【目标对象】`app/domain/rag/models.py`
      【修改目的】定义用户知识库的领域模型
      【修改方式】使用 SQLAlchemy 定义 ORM 模型
-     【相关依赖】`AgentX/domain/rag/model/UserRagEntity.java`
+     【相关依赖】无
      【修改内容】
         - 创建 UserRag 模型（user_rags 表）
         - 定义字段：id, user_id, name, description, model_config, created_at, updated_at
@@ -27,7 +50,7 @@
      【目标对象】`app/domain/rag/models.py`
      【修改目的】定义 RAG 版本的领域模型
      【修改方式】使用 SQLAlchemy 定义 ORM 模型
-     【相关依赖】`AgentX/domain/rag/model/RagVersionEntity.java`
+     【相关依赖】无
      【修改内容】
         - 创建 RagVersion 模型（rag_versions 表）
         - 定义字段：id, user_rag_id, version_number, status, publish_status, description, created_at
@@ -40,7 +63,7 @@
      【目标对象】`app/domain/rag/models.py`
      【修改目的】定义文件详情的领域模型
      【修改方式】使用 SQLAlchemy 定义 ORM 模型
-     【相关依赖】`AgentX/domain/rag/model/FileDetailEntity.java`
+     【相关依赖】无
      【修改内容】
         - 创建 FileDetail 模型（file_details 表）
         - 定义字段：id, user_rag_id, file_name, file_path, file_type, file_size, status, processing_progress, created_at
@@ -52,7 +75,7 @@
      【目标对象】`app/domain/rag/models.py`
      【修改目的】定义文档单元的领域模型
      【修改方式】使用 SQLAlchemy 定义 ORM 模型
-     【相关依赖】`AgentX/domain/rag/model/DocumentUnitEntity.java`
+     【相关依赖】无
      【修改内容】
         - 创建 DocumentUnit 模型（document_units 表）
         - 定义字段：id, file_detail_id, content, chunk_index, embedding, metadata, segment_type, created_at
@@ -60,11 +83,15 @@
         - 创建 pgvector 扩展支持（embedding 字段使用 vector 类型）
         - 实现 Pydantic Schema（DocumentUnitDTO）
 
+---
+
+## 第二阶段：仓储层和数据访问
+
 - [ ] 1.6 定义 RagQaDataset 实体和模型
      【目标对象】`app/domain/rag/models.py`
      【修改目的】定义 QA 数据集的领域模型
      【修改方式】使用 SQLAlchemy 定义 ORM 模型
-     【相关依赖】`AgentX/domain/rag/model/RagQaDatasetEntity.java`
+     【相关依赖】无
      【修改内容】
         - 创建 RagQaDataset 模型（rag_qa_datasets 表）
         - 定义字段：id, user_rag_id, name, question_count, created_at, updated_at
@@ -75,7 +102,7 @@
      【目标对象】`app/domain/rag/models.py`
      【修改目的】定义版本文件和版本文档的关联模型
      【修改方式】使用 SQLAlchemy 定义 ORM 模型
-     【相关依赖】`AgentX/domain/rag/model/RagVersionFileEntity.java`, `RagVersionDocumentEntity.java`
+     【相关依赖】无
      【修改内容】
         - 创建 RagVersionFile 模型（rag_version_file 表）
         - 创建 RagVersionDocument 模型（rag_version_document 表）
@@ -86,7 +113,7 @@
      【目标对象】`app/domain/rag/constants.py`
      【修改目的】定义 RAG 相关的枚举类型和常量
      【修改方式】使用 Python Enum 定义枚举
-     【相关依赖】`AgentX/domain/rag/constant/*.java`
+     【相关依赖】无
      【修改内容】
         - FileProcessingStatusEnum：文件处理状态（UPLOADED, OCR_PROCESSING, OCR_COMPLETED, EMBEDDING_PROCESSING, EMBEDDING_COMPLETED, FAILED）
         - RagPublishStatus：RAG 发布状态（DRAFT, REVIEWING, PUBLISHED, REJECTED）
@@ -165,6 +192,10 @@
         - 实现批量向量插入
         - 实现向量删除
 
+---
+
+## 第三阶段：领域服务层
+
 - [ ] 1.15 实现 UserRagDomainService
      【目标对象】`app/domain/rag/service.py`
      【修改目的】封装 UserRag 相关的业务逻辑
@@ -213,8 +244,8 @@
 - [ ] 1.19 实现 EmbeddingDomainService
      【目标对象】`app/domain/rag/service.py`
      【修改目的】实现文档向量嵌入服务
-     【修改方式】集成 LangChain 嵌入模型
-     【相关依赖】LangChain, LLM 模块
+     【修改方式】集成 LangChain 或 LlamaIndex 嵌入模型
+     【相关依赖】LangChain/LlamaIndex, LLM 模块
      【修改内容】
         - 文本向量化（Embedding）
         - 批量向量化
@@ -225,7 +256,7 @@
      【目标对象】`app/domain/rag/strategy/`
      【修改目的】实现文档解析和分段策略
      【修改方式】策略模式
-     【相关依赖】pypdf, python-docx, python-pptx
+     【相关依赖】pypdf, python-docx, python-pptx, markdown
      【修改内容】
         - DocumentProcessingStrategy 抽象基类
         - PDF 解析策略（使用 pypdf）
@@ -246,11 +277,15 @@
         - 重叠分段（Chunking with overlap）
         - 分段元数据提取
 
+---
+
+## 第四阶段：应用服务层
+
 - [ ] 1.22 实现 HybridSearchDomainService
      【目标对象】`app/domain/rag/service/search.py`
      【修改目的】实现混合检索（语义 + 关键词）
      【修改方式】结合向量检索和关键词检索
-     【相关依赖】Elasticsearch 或 pgvector 全文检索
+     【相关依赖】pgvector 全文检索或 Elasticsearch
      【修改内容】
         - 语义检索（向量相似度）
         - 关键词检索（全文搜索）
@@ -260,10 +295,9 @@
 
 - [ ] 1.23 实现 RerankDomainService
      【目标对象】`app/domain/rag/service/rerank.py`
- 【目标对象】`app/domain/rag/service/rerank.py`
      【修改目的】实现检索结果重排序
      【修改方式】使用重排序模型或规则
-     【相关依赖】CrossEncoder 或自定义规则
+     【相关依赖】sentence-transformers CrossEncoder 或自定义规则
      【修改内容】
         - 基于模型的重排序（可选）
         - 基于评分的重排序
@@ -384,6 +418,7 @@
         - 流式检索（StreamSearch）
         - 重排序（Rerank）
         - RAG 聊天（RagChat）
+        - 检索用量记录（用于计费）
 
 - [ ] 1.35 实现 RAG 路由
      【目标对象】`app/api/v1/rag/`
@@ -419,6 +454,8 @@
         - RagDocStorageConsumer（文档存储消费者）
         - 消息解析和错误处理
         - 消息重试机制
+        - 死信队列处理
+        - 用量记录（用于计费）
 
 - [ ] 1.37 实现消息队列生产者
      【目标对象】`app/infrastructure/rag/producer.py`
@@ -429,6 +466,19 @@
         - 发送文档处理消息
         - 发送文档存储消息
         - 消息序列化
+        - 消息持久化
+        - 优先级队列支持
+
+- [ ] 1.37.1 实现敏感内容检测服务
+     【目标对象】`app/domain/rag/service/content_moderation.py`
+     【修改目的】检测和过滤敏感内容
+     【修改方式】使用敏感词库或 AI 模型
+     【相关依赖】sensitive-word 库或自定义 AI 模型
+     【修改内容】
+        - 敏感词过滤
+        - 违规内容检测
+        - 发布前内容审核
+        - 审核日志记录
 
 - [ ] 1.38 实现 RAG 文件存储策略
      【目标对象】`app/infrastructure/rag/storage/`
@@ -436,31 +486,38 @@
      【修改方式】文件系统存储或对象存储
      【相关依赖】本地文件系统或 MinIO/S3
      【修改内容】
-        - 检查文件类型
+        - 检查文件类型和大小限制
+        - 文件病毒扫描（可选集成 ClamAV）
+        - XSS 防护：文件名和内容过滤
         - 保存文件到指定路径
         - 删除文件
         - 文件路径生成策略
+        - 支持文件访问权限控制
 
 - [ ] 1.39 实现向量化任务调度
      【目标对象】`app/infrastructure/rag/tasks/`
      【修改目的】定时执行向量化任务
      【修改方式】使用 Celery 或 APScheduler
-     【相关依赖】Celery 或 APScheduler
+     【相关依赖】Celery 或 APScheduler, Redis/RabbitMQ
      【修改内容】
         - 创建向量化任务
         - 批量向量化任务
         - 任务监控和日志
+        - 任务失败告警
+        - 支持任务优先级
 
 - [ ] 1.40 实现 OCR 服务
      【目标对象】`app/infrastructure/rag/ocr/`
      【修改目的】实现文本识别功能
      【修改方式】集成 Tesseract OCR 或云服务 OCR
-     【相关依赖】Tesseract 或 OCR 云服务 API
+     【相关依赖】Tesseract (pytesseract)、EasyOCR 或 OCR 云服务 API
      【修改内容】
         - 图片 OCR
         - PDF OCR
         - OCR 结果验证
         - OCR 错误处理
+        - 支持多语言识别
+        - 批量 OCR 处理
 
 - [ ] 1.41 编写单元测试 - 领域层
      【目标对象】`tests/rag/test_domain_service.py`
@@ -473,6 +530,7 @@
         - 测试 FileDetail 状态转换
         - 测试 DocumentUnit 批量操作
         - 测试向量化服务
+        - 测试用户数据隔离
 
 - [ ] 1.42 编写单元测试 - 向量检索
      【目标对象】`tests/rag/test_search.py`
@@ -485,6 +543,11 @@
         - 测试混合检索
         - 测试重排序
         - 测试 RAG 聊天
+        - 测试检索精度评估（Precision/Recall）
+
+---
+
+## 第五阶段：基础设施层
 
 - [ ] 1.43 编写单元测试 - 文件处理
      【目标对象】`tests/rag/test_file_processing.py`
@@ -496,6 +559,8 @@
         - 测试文件解析
         - 测试文本分段
         - 测试状态机转换
+        - 测试 OCR 错误处理和重试机制
+        - 测试多语言文档处理
 
 - [ ] 1.44 编写集成测试 - RAG 完整流程
      【目标对象】`tests/integration/test_rag_workflow.py`
@@ -526,19 +591,43 @@
      【目标对象】`app/domain/rag/service/embedding.py`
      【修改目的】提高向量化性能
      【修改方式】批量化处理
-     【相关依赖】LangChain
+     【相关依赖】LangChain/LlamaIndex
      【修改内容】
-        - 实现批量向量化
-        - 并行处理
-        - 错误重试
+        - 实现批量向量化（batch_size 可配置）
+        - 并行处理（使用 asyncio 或 multiprocessing）
+        - 错误重试机制（指数退避）
+        - 向量结果缓存
 
 - [ ] 1.47 性能优化 - 索引优化
      【目标对象】`alembic/versions/`
      【修改目的】优化数据库查询性能
      【修改方式】添加数据库索引
-     【相关依赖】PostgreSQL
+     【相关依赖】PostgreSQL, pgvector
      【修改内容】
-        - 为 embedding 字段创建 ivfflat 索引
+        - 为 embedding 字段创建 ivfflat 索引（HNSW 可选）
         - 为 user_id 字段创建索引
         - 为 status 字段创建索引
         - 为 created_at 字段创建索引
+        - 为 dataset_id 字段创建索引
+        - 优化向量检索查询计划
+
+---
+
+## 第六阶段：测试和部署
+
+**实施优先级说明：**
+1. **第一阶段**（领域层和数据模型）：基础，必须首先完成
+2. **第二阶段**（仓储层）：数据访问，依赖第一阶段
+3. **第三阶段**（领域服务）：核心业务逻辑，依赖前两个阶段
+4. **第四阶段**（应用服务）：用例编排，可以并行开发部分功能
+5. **第五阶段**（基础设施）：异步处理和存储，可以提前准备
+6. **第六阶段**（测试）：贯穿整个开发过程，建议 TDD
+
+**预计工作量：**
+- 领域层和数据模型：3-5 天
+- 仓储层：2-3 天
+- 领域服务：5-7 天
+- 应用服务：4-6 天
+- 基础设施：3-5 天
+- 测试和优化：5-7 天
+- **总计**: 22-33 天

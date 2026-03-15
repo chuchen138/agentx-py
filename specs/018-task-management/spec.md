@@ -2,21 +2,58 @@
 
 ## 1. 概述
 
-任务管理能力是 AgentX 平台的会话任务管理能力，提供对 Agent 执行过程中产生的任务（Task）的管理和追踪。主要关注单次会话内的任务生命周期，包括任务创建、执行、完成和状态管理。
+任务管理能力是 AgentX 平台的会话任务管理能力，提供对 Agent 执行过程中产生的任务（Task）的管理和追踪。主要关注单次会话内的任务生命周期持久化、状态存储和执行追踪。
 
 ### 1.1 模块定位
 
-- **核心作用**：为会话内的任务执行提供管理能力
-- **服务对象**：Agent 执行引擎、任务处理器
-- **应用场景**：Agent 任务分解、任务执行追踪、任务状态管理
+- **核心作用**：为任务/工作流提供持久化存储和状态管理（仅持久化和查询，不包含执行逻辑）
+- **服务对象**：014-agent-workflow（编排引擎）、013-conversation（对话管理）
+- **应用场景**：任务状态存储、执行追踪、历史记录查询
 
-### 1.2 核心价值
+### 1.2 模块职责边界
+
+- **013-conversation**: 对话流程控制，复杂任务委托给 014
+- **014-agent-workflow**: 纯编排引擎，负责任务调度、状态机管理、任务拆分，不存储状态
+- **018-task-management**: 任务/工作流持久化、状态存储、执行追踪（仅持久化层）
+
+**重要说明**：
+- 014 模块负责任务的编排逻辑（拆分、调度、依赖管理、状态机转换）
+- 本模块负责将任务和工作的状态持久化到数据库，并提供查询能力
+- 014 通过直接调用 018 的服务层方法（无 HTTP 开销），实现状态持久化
+- 本模块**不包含**任务执行引擎、超时检测、自动重试等执行逻辑
+
+### 1.3 核心价值
 
 - **任务追踪**：记录会话内的任务执行情况
 - **状态管理**：提供任务生命周期的状态管理
 - **进度跟踪**：记录任务执行的进度信息
 - **层级管理**：支持任务和子任务的层级关系
 - **结果记录**：保存任务执行的最终结果
+
+---
+
+## 1.4 技术约束
+
+### 1.4.1 技术栈
+
+- **存储**：PostgreSQL（tasks 表），Redis（进度缓存，可选）
+- **ORM**：SQLAlchemy（支持 async）
+- **API 框架**：FastAPI（内部服务调用，非 HTTP）
+- **调用方式**：同步方法调用（014 直接调用 018 服务层）
+
+### 1.4.2 性能要求
+
+- **状态更新延迟**：<50ms (P95)
+- **查询当前会话任务**：<100ms (P95)
+- **并发任务追踪**：≥5000 个任务（跨所有会话）
+- **进度更新吞吐量**：≥1000 次更新/秒
+
+### 1.4.3 安全要求
+
+- **访问控制**：所有查询必须强制过滤 `user_id` + `session_id`
+- **数据隔离**：PostgreSQL 行级安全策略（RLS）
+- **敏感数据**：包含 PII 的任务结果必须加密存储
+- **审计日志**：记录任务创建/状态变更（谁、何时、什么操作）
 
 ---
 
@@ -201,21 +238,29 @@ Agent 在执行过程中将复杂任务分解为多个子任务。
 
 任务实体类，定义任务的基本结构。
 
-| 字段名 | 类型 | 说明 |
-|-------|------|------|
-| id | String | 任务 ID |
-| sessionId | String | 会话 ID |
-| userId | String | 用户 ID |
-| parentTaskId | String | 父任务 ID |
-| taskName | String | 任务名称 |
-| description | String | 任务描述 |
-| status | TaskStatus | 任务状态 |
-| progress | Integer | 任务进度（0-100） |
-| startTime | LocalDateTime | 开始时间 |
-| endTime | LocalDateTime | 结束时间 |
-| taskResult | String | 任务结果 |
-| createdAt | LocalDateTime | 创建时间 |
-| updatedAt | LocalDateTime | 更新时间 |
+| 字段名 | 类型 | 说明 | 约束 |
+|-------|------|------|------|
+| id | String | 任务 ID | UUID, 主键 |
+| session_id | String | 会话 ID | 外键，索引 |
+| user_id | String | 用户 ID | 外键，索引 |
+| parent_task_id | String | 父任务 ID | 外键，索引，可空 |
+| task_name | String | 任务名称 | 最大 256 字符 |
+| description | String | 任务描述 | 最大 4096 字符 |
+| status | TaskStatus | 任务状态 | 索引 |
+| progress | Integer | 任务进度（0-100） | 默认 0 |
+| start_time | LocalDateTime | 开始时间 | 可空 |
+| end_time | LocalDateTime | 结束时间 | 可空 |
+| task_result | String | 任务结果 | 最大 65535 字符 |
+| version | Long | 版本号 | 乐观锁，默认 0 |
+| deleted_at | LocalDateTime | 删除时间 | 软删除，可空 |
+| created_at | LocalDateTime | 创建时间 | 默认当前时间 |
+| updated_at | LocalDateTime | 更新时间 | 自动更新 |
+
+**索引设计**：
+- `idx_session_created`: (session_id, created_at DESC) - 查询会话最新任务
+- `idx_user_status`: (user_id, status) - 按用户和状态查询
+- `idx_parent_task`: (parent_task_id) - 查询子任务
+- `idx_deleted_at`: (deleted_at) - 软删除过滤
 
 ### 4.2 TaskStatus
 
@@ -232,26 +277,49 @@ Agent 在执行过程中将复杂任务分解为多个子任务。
 
 任务聚合根，包含任务和子任务的整体信息。
 
-```java
-public class TaskAggregate {
-    private TaskEntity task;
-    private List<TaskEntity> subTasks;
+```python
+class TaskAggregate:
+    def __init__(self, task: TaskEntity, sub_tasks: List[TaskEntity]):
+        self.task = task  # 父任务或独立任务
+        self.sub_tasks = sub_tasks  # 子任务列表（可为空）
     
-    public TaskAggregate(TaskEntity task, List<TaskEntity> subTasks) {
-        this.task = task;
-        this.subTasks = subTasks;
-    }
-}
+    def is_all_completed(self) -> bool:
+        """检查所有任务是否完成"""
+        if not self.sub_tasks:
+            return self.task.status == TaskStatus.COMPLETED
+        return all(t.status == TaskStatus.COMPLETED for t in self.sub_tasks)
 ```
 
 ---
 
-## 5. 接口定义
+## 5. 失败处理规则
 
-### 5.1 获取当前会话任务
+### 5.1 超时处理
+
+- **责任模块**：超时检测由 014-agent-workflow 负责
+- **018 职责**：仅记录超时后的状态变更（FAILED）
+- **结果截断**：任务结果超过 65535 字符时自动截断并标记
+
+### 5.2 孤儿任务处理
+
+- **场景**：父任务被删除后，子任务成为孤儿任务
+- **处理策略**：级联软删除（子任务 deleted_at 同步设置）
+- **查询过滤**：默认查询自动排除已软删除的任务
+
+### 5.3 事务回滚
+
+- **约束违反**：外键约束、唯一约束违反时立即回滚
+- **乐观锁冲突**：version 不匹配时抛出 OptimisticLockException
+- **错误传递**：数据访问异常传递给调用方（014）处理
+
+---
+
+## 6. 接口定义
+
+### 6.1 获取当前会话任务
 
 ```http
-GET /api/tasks/current-session
+GET /api/v1/tasks/current-session
 ```
 
 **请求参数**：
@@ -260,6 +328,7 @@ GET /api/tasks/current-session
 |-------|------|------|------|
 | sessionId | String | 是 | 会话 ID |
 | userId | String | 是 | 用户 ID |
+| includeDeleted | Boolean | 否 | 是否包含已删除（默认 false） |
 
 **响应数据**：
 
@@ -269,12 +338,79 @@ GET /api/tasks/current-session
     "id": "task-123",
     "taskName": "父任务",
     "status": "IN_PROGRESS",
-    "progress": 50
+    "progress": 50,
+    "version": 1
   },
   "subTasks": [
     {
       "id": "subtask-1",
       "taskName": "子任务 1",
       "status": "COMPLETED",
-      "progress": 100
+      "progress": 100,
+      "version": 0
+    }
+  ]
+}
+```
+
+### 6.2 查询任务列表（支持过滤和分页）
+
+```http
+GET /api/v1/tasks/query
+```
+
+**请求参数**：
+
+| 参数名 | 类型 | 必填 | 说明 |
+|-------|------|------|------|
+| userId | String | 是 | 用户 ID |
+| sessionId | String | 否 | 会话 ID 过滤 |
+| status | String | 否 | 状态过滤（可多个，逗号分隔） |
+| startDate | LocalDateTime | 否 | 开始时间过滤 |
+| endDate | LocalDateTime | 否 | 结束时间过滤 |
+| offset | Integer | 否 | 偏移量（默认 0） |
+| limit | Integer | 否 | 每页数量（默认 20，最大 100） |
+
+**响应数据**：
+
+```json
+{
+  "tasks": [
+    {
+      "id": "task-123",
+      "sessionId": "session-456",
+      "taskName": "任务名称",
+      "status": "COMPLETED",
+      "progress": 100,
+      "createdAt": "2026-03-14T10:30:00Z"
+    }
+  ],
+  "total": 150,
+  "offset": 0,
+  "limit": 20
+}
+```
+
+### 6.3 更新任务状态
+
+```http
+PATCH /api/v1/tasks/{id}/status
+```
+
+**请求参数**：
+
+| 参数名 | 类型 | 必填 | 说明 |
+|-------|------|------|------|
+| userId | String | 是 | 用户 ID（权限验证） |
+| status | TaskStatus | 是 | 新状态 |
+| progress | Integer | 否 | 新进度（可选） |
+| taskResult | String | 否 | 任务结果（可选） |
+| version | Long | 是 | 期望版本号（乐观锁检查） |
+
+**成功响应**：200 OK
+
+**失败响应**：
+- 404 Not Found: 任务不存在
+- 403 Forbidden: 无权访问该任务（user_id 不匹配）
+- 409 Conflict: 版本冲突（乐观锁失败）
    

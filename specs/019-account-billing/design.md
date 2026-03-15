@@ -8,17 +8,58 @@
 
 ### 架构分层
 
-系统采用四层架构：接口层处理 HTTP 请求和参数校验；应用层协调业务流程，包含账户、订单、支付、商品和计费服务；领域层封装核心业务逻辑，管理账户、订单、商品实体和领域事件；基础设施层对接支付平台和数据库。
+系统采用四层架构：**接口层**（API Routes）处理 HTTP 请求和参数校验；**应用层**（Application Services）协调业务流程，包含账户、订单、支付、商品和计费服务；**领域层**（Domain Services）封装核心业务逻辑，管理账户、订单、商品实体和领域事件；**基础设施层**（Infrastructure）对接支付平台、数据库和消息队列。
 
 ### 核心组件
 
-账户应用服务负责账户信息管理、充值、信用额度增加和余额充足性检查。计费服务作为核心编排服务，执行计费验证、规则查找、幂等性检查、费用计算和扣费记录。订单应用服务管理订单查询。支付应用服务处理支付流程。商品应用服务管理商品创建和查询。充值事件监听器异步处理充值订单的余额增加。
+**账户应用服务（AccountAppService）**
+负责账户信息管理、充值发起、信用额度调整和余额充足性检查。所有余额变动操作记录审计日志。
+
+**计费服务（BillingService）**
+作为核心编排服务，执行以下流程：
+1. 验证计费上下文完整性和有效性
+2. 查找对应的商品规则和计费策略
+3. 执行幂等性检查（通过 request_id 查询 usage_records 表）
+4. Redis 分布式锁防止并发超扣（lock:billing:{user_id}）
+5. 根据用量数据和价格配置计算费用
+6. 实现最低计费额保障（round to 0.01 元）
+7. 检查余额是否充足（读 Redis 缓存）
+8. 通过 PostgreSQL 事务执行扣费并记录消费
+9. 更新 Redis 余额缓存
+
+**订单应用服务（OrderAppService）**
+管理订单生命周期，包括创建、查询、状态流转（PENDING → PAID/CANCELLED/REFUNDED/EXPIRED）。
+
+**支付应用服务（PaymentAppService）**
+处理支付流程，包括创建支付订单、处理支付回调、验证签名、更新订单状态、发布支付成功事件。
+
+**商品应用服务（ProductAppService）**
+管理商品和计费规则的 CRUD 操作。
+
+**充值事件监听器（RechargeEventListener）**
+通过 Celery 异步任务监听支付成功事件，自动增加账户余额，支持失败重试。
 
 ## 计费流程
 
 ### 计费触发流程
 
-计费流程是系统的核心，负责根据用户资源使用情况自动扣费。业务模块调用计费服务后，首先验证计费上下文的完整性和有效性，然后查找对应的商品规则。如果没有配置计费规则则直接放行。执行幂等性检查防止重复扣费，获取计费规则和对应策略，根据用量数据和价格配置计算费用，实现最低计费额保障（0.01元）。最后检查余额是否充足，通过事务执行扣费并记录消费。
+计费流程是系统的核心，负责根据用户资源使用情况自动扣费。业务模块调用计费服务后，首先验证计费上下文的完整性和有效性，然后查找对应的商品规则。如果没有配置计费规则则直接放行。执行幂等性检查防止重复扣费，获取计费规则和对应策略，根据用量数据和价格配置计算费用，实现最低计费额保障（0.01 元）。最后检查余额是否充足，通过事务执行扣费并记录消费。
+
+### 并发控制机制
+
+**防止超卖设计**
+1. **Redis 分布式锁**：扣费前获取锁，超时自动释放
+   ```python
+   async with redis_lock(f"lock:billing:{user_id}", timeout=5):
+       # 执行扣费逻辑
+   ```
+2. **数据库乐观锁**：account 表增加 version 字段
+   ```sql
+   UPDATE accounts 
+   SET balance = balance - :amount, version = version + 1
+   WHERE id = :id AND version = :old_version
+   ```
+3. **唯一索引防重**：usage_records.request_id 设置唯一索引
 
 ### 计费上下文
 
@@ -28,45 +69,151 @@
 
 系统采用策略模式实现灵活的计费策略，支持不同的计费逻辑。Token 计费策略按输入输出 Token 数量计费，按次计费策略按使用次数计费，按时长计费策略按时间长度计费，存储计费策略按存储容量和时长计费。计费策略工厂根据规则处理器标识动态选择对应的策略。
 
-## 事件驱动设计
+## 事件驱动与异步处理
 
 ### 购买成功事件
 
-购买成功事件是系统的核心事件，包含订单 ID、用户 ID、订单号、订单类型、订单金额、订单标题、描述、完整订单实体信息和事件发生时间。
+支付成功后发布 `PurchaseSuccessEvent`，包含订单 ID、用户 ID、订单号、订单类型、订单金额、完整订单实体等信息。
 
-### 充值事件监听器
+### Celery 异步任务
 
-充值事件监听器只处理充值类型的订单，在支付成功后自动增加账户余额。关键设计包括通过订单类型判断只处理充值订单，使用异步注解（@Async）在独立线程执行充值逻辑不阻塞支付回调处理，通过异常捕获和日志记录实现失败重试。
+**充值处理流程**
+```python
+@celery.task(bind=True, max_retries=5)
+def process_recharge(self, order_id: str):
+    try:
+        # 1. 查询订单
+        order = await order_repo.get(order_id)
+        
+        # 2. 增加账户余额
+        await account_domain.recharge(order.user_id, order.amount)
+        
+        # 3. 发送余额变动通知
+        await notification_service.send_balance_update(...)
+        
+    except Exception as exc:
+        # 指数退避重试
+        raise self.retry(exc, countdown=2 ** self.request.retries)
+```
 
-### 异步处理优势
+**优势**
+- 支付回调快速响应（< 200ms）
+- 充值逻辑与支付解耦
+- 失败自动重试，不影响支付记录
+- 可独立监控和告警
 
-事件驱动架构实现业务解耦，支付成功与余额到账分离，支付流程不依赖充值逻辑，各业务模块独立处理订单事件。异步处理不阻塞主流程，支付回调快速响应，减少用户等待时间。失败可重试，不影响支付记录，可独立监控和告警。
-
-## 支付平台集成
+### 支付平台集成
 
 ### 支付平台抽象
 
-系统通过支付提供商接口抽象多支付平台，支持创建支付、查询支付状态、处理支付回调和检查平台可用性。支持支付宝、微信支付和 Stripe 等支付平台，以及网页支付、二维码支付、移动端支付、H5 支付和小程序支付等多种支付类型。
+定义 `PaymentProvider` 接口，支持支付宝、微信支付、Stripe。每个支付平台实现：
+- `create_payment()`: 创建支付
+- `query_payment()`: 查询支付状态
+- `verify_callback()`: 验证回调签名
+- `is_available()`: 检查平台可用性
+
+### 支付回调安全
+
+**签名验证**
+```python
+def verify_alipay_signature(data: dict, signature: str) -> bool:
+    # 使用支付宝公钥验证 RSA 签名
+    public_key = load_alipay_public_key()
+    message = build_sign_message(data)
+    return public_key.verify(message, signature)
+```
+
+**防重放攻击**
+```python
+async def verify_nonce(nonce: str, timestamp: int) -> bool:
+    # 检查时间窗口（±5 分钟）
+    if abs(time.time() - timestamp) > 300:
+        return False
+    
+    # 检查 nonce 唯一性
+    exists = await redis.exists(f"payment:nonce:{nonce}")
+    if exists:
+        return False
+    
+    # 记录 nonce（TTL 10 分钟）
+    await redis.setex(f"payment:nonce:{nonce}", 600, 1)
+    return True
+```
 
 ### 支付流程
 
 支付流程包括用户发起充值请求创建充值订单、选择支付平台和支付类型、调用支付平台创建支付、返回支付链接或二维码、用户扫码或在页面完成支付、支付平台回调通知、验证回调签名并查询订单状态、更新订单状态为已支付、发布购买成功事件、事件监听器处理余额充值。
 
-## 计费类型与策略
-
-### 计费类型
-
-计费类型包括模型调用计费（MODEL_USAGE）、Agent 创建计费（AGENT_CREATION）、Agent 使用计费（AGENT_USAGE）、API 调用计费（API_CALL）和存储使用计费（STORAGE_USAGE）。
-
-### 价格配置和用量数据
-
-系统定义标准的配置键名和用量数据键名，支持模型 Token 计费（输入和输出成本）、按次计费（单位成本、基础成本）、按时长计费（每小时、每分钟、每秒成本）、分层计费（层级成本和阈值）等策略。用量数据包括输入输出 Token 数量、调用次数、时长、文件大小字节数、存储天数等。
-
 ## 数据模型
 
 ### 核心实体
 
-账户实体包含账户 ID、用户 ID、余额、信用额度、总消费金额和最后交易时间等字段。订单实体包含订单 ID、用户 ID、订单号、订单类型、标题、描述、金额、货币、状态、过期时间、支付完成时间、取消时间、退款时间、退款金额、支付平台、支付类型、第三方订单 ID、扩展信息和创建更新时间等字段。商品实体包含商品 ID、名称、计费类型、服务 ID、规则 ID、价格配置、状态和创建更新时间等字段。消费记录实体包含记录 ID、用户 ID、商品 ID、关联订单 ID、请求 ID（幂等性）、计费类型、服务 ID、用量数据、消费金额和创建时间等字段。规则实体包含规则 ID、名称、策略处理器标识、规则配置和创建更新时间等字段。
+**Account（账户）**
+```python
+class Account(Base):
+    __tablename__ = "accounts"
+    
+    id: UUID = Column(UUID, primary_key=True)
+    user_id: UUID = Column(UUID, unique=True, nullable=False)
+    balance: Decimal = Column(Numeric(10, 2), default=0)
+    credit: Decimal = Column(Numeric(10, 2), default=0)
+    total_consumed: Decimal = Column(Numeric(10, 2), default=0)
+    version: int = Column(Integer, default=0)  # 乐观锁
+    created_at: datetime = Column(DateTime)
+    updated_at: datetime = Column(DateTime)
+```
+
+**Order（订单）**
+```python
+class Order(Base):
+    __tablename__ = "orders"
+    
+    id: UUID = Column(UUID, primary_key=True)
+    user_id: UUID = Column(UUID, nullable=False)
+    order_no: str = Column(String(64), unique=True, nullable=False)
+    type: OrderType = Column(Enum(OrderType))
+    title: str = Column(String(255))
+    description: str = Column(Text)
+    amount: Decimal = Column(Numeric(10, 2))
+    currency: str = Column(String(3), default="CNY")
+    status: OrderStatus = Column(Enum(OrderStatus))
+    paid_at: Optional[datetime] = Column(DateTime)
+    refunded_at: Optional[datetime] = Column(DateTime)
+    refund_amount: Optional[Decimal] = Column(Numeric(10, 2))
+    payment_platform: PaymentPlatform = Column(Enum(PaymentPlatform))
+    payment_type: PaymentType = Column(Enum(PaymentType))
+    transaction_id: Optional[str] = Column(String(128))  # 第三方订单号
+    metadata: dict = Column(JSONB)
+    created_at: datetime = Column(DateTime)
+    updated_at: datetime = Column(DateTime)
+    
+    # 索引
+    __table_args__ = (
+        Index("idx_user_status", "user_id", "status"),
+    )
+```
+
+**UsageRecord（消费记录）**
+```python
+class UsageRecord(Base):
+    __tablename__ = "usage_records"
+    
+    id: UUID = Column(UUID, primary_key=True)
+    user_id: UUID = Column(UUID, nullable=False)
+    product_id: UUID = Column(UUID, nullable=False)
+    order_id: Optional[UUID] = Column(UUID)
+    request_id: str = Column(String(128), unique=True, nullable=False)  # 幂等性
+    billing_type: BillingType = Column(Enum(BillingType))
+    service_id: str = Column(String(255))  # model_id / agent_id
+    usage_data: dict = Column(JSONB)  # {input_tokens, output_tokens, ...}
+    amount: Decimal = Column(Numeric(10, 2))
+    created_at: datetime = Column(DateTime)
+    
+    # 索引
+    __table_args__ = (
+        Index("idx_user_created", "user_id", "created_at"),
+    )
+```
 
 ## 接口定义
 
@@ -96,18 +243,116 @@
 
 系统采用灵活的计费策略扩展，通过策略接口定义统一策略，具体策略包括 TokenBillingStrategy、PerUnitBillingStrategy 等，新增计费类型只需实现新策略。工厂模式管理所有策略，根据处理器键动态选择策略，支持策略热插拔。商品的价格配置使用 JSON 格式灵活配置各种价格参数，无需修改代码即可调整价格。
 
-### 事件驱动架构
+## 设计亮点
 
-购买成功事件和异步监听器实现充值成功异步处理，不阻塞支付回调流程。事件驱动架构实现业务解耦提升可维护性，支付成功与权益授予分离，各业务模块独立处理订单事件，降低模块间耦合。使用 Spring 的事件监听器注解和异步处理支持，便于扩展新的事件处理逻辑。
+### 领域驱动设计
 
-### 幂等性设计
+系统遵循领域驱动设计原则，划分账户领域（账户余额、信用额度管理）、订单领域（订单生命周期管理）、支付领域（支付平台集成）和商品领域（商品和计费规则管理）清晰的领域边界，提供丰富的领域模型（AccountEntity、OrderEntity、ProductEntity、PurchaseSuccessEvent）和领域服务（AccountDomainService、OrderDomainService、ProductDomainService）封装核心业务逻辑。
 
-系统实现基于请求 ID 的防重复，每次计费请求携带唯一请求 ID，扣费前检查请求 ID 是否已存在，已存在则直接返回不重复扣费。消费记录表的请求 ID 字段设置唯一索引，数据库层面防止重复记录，保证并发场景下的最终一致性。计费流程使用事务注解，余额扣减、消费记录插入、订单状态更新在同一事务，保证操作的原子性。
+### 策略模式应用
+
+# ... existing code ...
+
+### 事件驱动与异步处理
+
+购买成功事件和异步监听器实现充值成功异步处理，不阻塞支付回调流程。事件驱动架构实现业务解耦提升可维护性，支付成功与权益授予分离，各业务模块独立处理订单事件，降低模块间耦合。使用 Celery 异步任务队列，支持失败重试和监控告警。
+
+### 幂等性与并发控制
+
+**三级防护机制**
+1. **应用层**：请求级幂等（request_id），Redis 分布式锁
+2. **数据库层**：唯一索引约束（request_id），乐观锁（version）
+3. **业务层**：事务隔离（READ COMMITTED），行级锁（SELECT FOR UPDATE）
+
+**扣费流程伪代码**
+```python
+async def charge(self, ctx: BillingContext) -> ChargeResult:
+    # 1. 幂等性检查
+    existing = await self.repo.get_by_request_id(ctx.request_id)
+    if existing:
+        return ChargeResult(success=True, already_charged=True)
+    
+    # 2. 获取分布式锁
+    async with redis_lock(f"lock:billing:{ctx.user_id}", timeout=5):
+        # 3. 再次检查（双重检查锁）
+        existing = await self.repo.get_by_request_id(ctx.request_id)
+        if existing:
+            return ChargeResult(success=True, already_charged=True)
+        
+        # 4. 计算费用
+        amount = await self.calculate_fee(ctx)
+        
+        # 5. 检查余额（读缓存）
+        balance = await self.account_service.get_balance(ctx.user_id)
+        if balance < amount:
+            raise InsufficientBalanceError()
+        
+        # 6. 执行扣费（事务 + 乐观锁）
+        async with db.begin():
+            success = await self.account_repo.deduct_with_version(
+                ctx.user_id, amount
+            )
+            if not success:
+                raise ConcurrentModificationError()
+            
+            # 7. 记录消费
+            record = UsageRecord(
+                user_id=ctx.user_id,
+                request_id=ctx.request_id,
+                amount=amount,
+                ...
+            )
+            db.add(record)
+        
+        # 8. 更新缓存
+        await self.cache.set(f"account:{ctx.user_id}:balance", balance - amount)
+        
+        return ChargeResult(success=True, amount=amount)
+```
 
 ## 技术栈
 
-技术栈包括 Java 17 作为开发语言，Spring Boot 3.x 作为应用框架，MyBatis Plus 作为持久层框架，MySQL 8.0 作为关系型数据库，Spring Event 实现事件驱动。主要依赖包括 Spring Boot Starter Web、MyBatis Plus、MySQL Driver 以及支付平台 SDK（如支付宝 SDK、Stripe SDK）。
+**后端框架**
+- Python 3.10+
+- FastAPI 0.100+（异步 Web 框架）
+- SQLAlchemy 2.0+（异步 ORM）
+- Pydantic 2.0+（数据验证）
+
+**数据存储**
+- PostgreSQL 14+（主数据库）
+- Redis 7.0+（缓存 + 分布式锁 + 消息队列）
+
+**消息队列**
+- Celery 5.3+（异步任务）
+- Celery Beat（定时任务）
+
+**支付集成**
+- alipay-sdk-python（支付宝）
+- wechatpy（微信支付）
+- stripe（国际支付）
+
+**安全与监控**
+- python-jose（JWT 签名验证）
+- cryptography（数据加密）
+- prometheus-client（指标监控）
+- structlog（结构化日志）
 
 ## 未来优化方向
 
-未来优化方向包括引入分布式事务处理跨服务计费、使用消息队列提升事件处理可靠性、引入缓存提升余额查询性能、支持多币种和汇率转换、增加分润与结算功能等。
+**短期（1-3 个月）**
+- [ ] 完善退款流程和对账任务
+- [ ] 实现订阅自动续费和降级策略
+- [ ] 接入电子发票系统
+- [ ] 增加余额变动实时通知（WebSocket）
+
+**中期（3-6 个月）**
+- [ ] 支持多币种和汇率转换
+- [ ] 引入分布式事务（Saga 模式）处理跨服务计费
+- [ ] 分润与结算功能（代理商/渠道商）
+- [ ] 风控规则引擎（异常消费检测）
+
+**长期（6-12 个月）**
+- [ ] 机器学习预测用户欠费风险
+- [ ] 动态定价策略（基于供需关系）
+- [ ] 区块链存证（交易不可篡改）
+- [ ] 全球化税务合规（VAT/GST 自动计算）

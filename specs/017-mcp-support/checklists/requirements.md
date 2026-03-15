@@ -223,6 +223,17 @@
         - 自动恢复:
           * 容器失败时自动重启
           * 状态持久化
+        
+        **容器预热逻辑**:
+        - 触发条件:
+          * 系统启动时：预热 2 个审核容器 + 每个活跃用户 1 个用户容器
+          * 库存不足时：当可用容器数 < 阈值 (如<3 个用户容器)
+          * 定时触发：高峰时段每 30 分钟 (9AM-9PM)
+        - 自动扩缩容:
+          * 利用率 > 80% 持续 5 分钟：扩容
+          * 利用率 < 30% 持续 15 分钟：缩容
+          * 最小值：1 个审核容器
+          * 最大值：20 个用户容器/节点
 
 - [ ] 3.5 实现工具参数预设服务
      【目标对象】`app/domain/mcp/parameter_service.py`
@@ -279,6 +290,21 @@
           * 心跳检测
           * 超时处理
           * 连接池管理
+        
+        **连接池配置**:
+        - max_pool_size: 50 个连接/服务器
+        - min_idle: 5 个连接
+        - max_idle_time: 300 秒
+        - max_reconnect_attempts: 5 次
+        
+        **连接复用策略**:
+        - 用户工具：按 (server_id, user_id) 键复用
+        - 全局工具：共享连接池
+        - 外部服务器：独立连接
+        
+        **背压处理**:
+        - 连接池耗尽时返回 503 Service Unavailable
+        - 支持等待队列 (最大等待 30 秒)
 
 - [ ] 3.7 实现 URL 构建服务
      【目标对象】`app/domain/mcp/url_builder.py`
@@ -299,6 +325,35 @@
         - URL 智能判断:
           * 根据工具类型选择 URL 前缀
           * 自动添加协议头
+
+### 3.8 实现安全验证服务
+
+- [ ] 3.8.1 参数验证与结果脱敏
+     【目标对象】`app/domain/mcp/security_service.py`
+     【修改目的】确保工具调用安全性和数据隐私
+     【修改方式】使用 Pydantic v2 和正则表达式
+     【相关依赖】pydantic, re
+     【修改内容】
+        - 创建 SecurityValidationService 类
+        - **参数验证**:
+          * 使用 Pydantic v2 模型进行严格类型检查
+          * JSON Schema 验证
+          * 范围检查和必填项校验
+          * 敏感参数加密存储 (AES-256)
+        
+        - **结果脱敏**:
+          * 移除/掩盖 PII 信息
+            - 邮箱：`re.sub(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', '***@***.**', text)`
+            - 手机号：`re.sub(r'\b\d{3}[-.]?\d{3}[-.]?\d{4}\b', '***-***-****', text)`
+            - SSN：`re.sub(r'\b\d{3}-\d{2}-\d{4}\b', '***-**-****', text)`
+          * 大响应截断 (>1MB)
+          * 根据 output_schema 验证输出
+        
+        - **速率限制**:
+          * 每用户：100 次调用/分钟
+          * 每工具：500 次调用/分钟
+          * 全局：5000 次调用/分钟
+          * 基于 Redis sliding window 实现
 
 ### 4. 应用服务层
 
@@ -732,6 +787,28 @@
         - 缓存参数预设
         - 实现缓存预热
         - 实现缓存过期和淘汰
+        
+        **缓存键设计规范**:
+        - 工具定义：`mcp:tool:{tool_id}`
+        - 服务器 URL: `mcp:server:url:{server_id}`
+        - 参数预设：`mcp:preset:{preset_id}`
+        - 工具类型映射：`mcp:tool:type:{tool_name}`
+        
+        **缓存穿透保护**:
+        - 对不存在的工具缓存 null 值 (TTL 60 秒)
+        - 使用 Bloom 过滤器检查工具存在性
+        - 布隆过滤器初始化时加载所有工具 ID
+        
+        **缓存 warming**:
+        - 服务启动时预加载所有全局工具和预设
+        - 定时更新热点工具缓存 (每 5 分钟)
+        - 用户首次访问时预加载该用户相关工具
+        
+        **缓存淘汰策略**:
+        - LRU (Least Recently Used)
+        - 最大缓存条目数：10,000
+        - 默认 TTL: 300 秒 (5 分钟)
+        - 热点数据自动延长 TTL
 
 - [ ] 11.3 实现负载均衡
      【目标对象】`app/infrastructure/load_balancer/`
@@ -746,3 +823,50 @@
         - 实现方法:
           * select_server(tool_name) -> MCPServer
           * update_server_weight(server_id, weight)
+        
+        **权重计算公式**:
+        ```python
+        health_score = success_rate * (1 - latency_penalty)
+        where:
+          success_rate = successful_calls / total_calls (rolling 5min window)
+          latency_penalty = min(current_latency / threshold_latency, 1.0)
+          threshold_latency = 2000ms
+        ```
+        
+        **权重更新触发条件**:
+        - 健康检查失败：立即降低权重 50%
+        - 成功率低于 90%：重新计算权重
+        - 延迟超过阈值连续 3 次检查：降低权重
+        - 服务器恢复：逐步提升权重 (每次 +10%, 上限 100%)
+
+### 12. 模块职责划分
+
+- [ ] 12.1 明确与 006-container-management 的边界
+     【目标对象】全局架构设计
+     【修改目的】避免职责重叠和混乱
+     【修改方式】清晰定义模块职责
+     【相关依赖】无
+     【修改内容】
+        
+        **006-container-management 职责**:
+        - 容器生命周期管理 (创建/启动/停止/删除)
+        - 资源分配和监控 (CPU、内存、磁盘)
+        - Docker daemon 交互
+        - 容器镜像管理
+        - 容器网络配置
+        - 容器日志收集
+        - 提供 ContainerAppService 作为对外接口
+        
+        **017-mcp-support 职责**:
+        - MCP 协议适配和版本管理
+        - 工具发现和调用编排
+        - SSE 连接管理
+        - URL 抽象和路由
+        - 参数预设管理
+        - 负载均衡 (多服务器场景)
+        - 使用 006 的 ContainerAppService 作为客户端
+        
+        **集成方式**:
+        - 017 通过依赖注入使用 006 的 ContainerAppService
+        - 006 不感知 MCP 协议细节
+        - 017 负责 MCP 层的状态管理和业务逻辑

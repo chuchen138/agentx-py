@@ -12,11 +12,33 @@
 
 ### 1.2 核心价值
 
-- **灵活调度**：支持多种重复类型（立即执行、每日、每周、自定义间隔等）
+- **灵活调度**：支持多种重复类型（立即执行、每日、每周、自定义间隔、Cron 表达式）
 - **任务管理**：提供完整的任务 CRUD 操作
 - **状态控制**：支持任务的启用、暂停、恢复
 - **执行监控**：记录任务的执行历史和状态
 - **会话关联**：任务与 Agent 和会话绑定，记录执行上下文
+- **安全隔离**：任务执行强制沙箱隔离，防止恶意代码注入
+
+---
+
+### 1.3 技术约束与性能要求
+
+**调度引擎选型**
+- 单实例场景：使用 APScheduler 3.x，支持 Cron、Interval、Date 三种触发器
+- 分布式场景：使用 Celery Beat + Redis Broker，支持任务去重和故障转移
+- Cron 表达式：兼容 Quartz 风格，支持 5-6 位表达式（秒分时日月年）
+
+**性能指标**
+- 调度延迟：< 1 秒（从到期到执行的时间偏差）
+- 并发任务数：单实例最大支持 100 个同时执行任务
+- 任务超时限制：默认 30 分钟，可配置（防止无限执行）
+- 任务队列容量：最大 10000 个待执行任务
+
+**安全与隔离要求**
+- 执行沙箱：每个任务在独立 Docker 容器中执行（复用 006 容器管理能力）
+- 资源配额：限制 CPU/内存（默认 1 Core / 512MB）
+- 输入校验：任务内容长度≤10000 字符，敏感词自动脱敏
+- 审计日志：强制记录任务创建/修改/删除/执行日志，保留至少 90 天
 
 ---
 
@@ -29,11 +51,25 @@
 #### 功能描述
 
 - **任务创建**：用户创建新的定时任务
-- **任务内容配置**：指定 Agent 要执行的内容
+- **任务内容配置**：指定 Agent 要执行的内容（需通过安全校验）
 - **重复类型选择**：选择任务的重复类型
 - **重复配置**：根据重复类型配置执行参数
 - **会话关联**：将任务关联到特定会话
 - **下次执行时间计算**：根据规则计算下次执行时间
+- **沙箱配置**：配置任务执行的 Docker 容器和资源配额
+
+#### 数据校验规则
+
+**content 字段**
+- 长度限制：1-10000 字符
+- 禁止包含：可执行代码片段（如 `import os`、`eval(`、`exec(` 等）
+- 敏感词检测：自动识别并脱敏（password、secret、token 等）
+
+**repeatConfig 字段**
+- INTERVAL 类型：intervalHours ∈ [1, 8760]（1 小时 -1 年）
+- DAILY 类型：executeTime 格式必须为 `HH:mm`（24 小时制）
+- WEEKLY 类型：weekDays ∈ [1,7]，executeTime 格式为 `HH:mm`
+- CUSTOM 类型：cronExpression 必须通过 croniter 验证
 
 #### 关键数据
 
@@ -182,6 +218,25 @@ PAUSED → PENDING
 
 ---
 
+### 2.6 失败重试与告警
+
+#### 重试策略
+
+**自动重试**
+- 最大重试次数：3 次（可配置）
+- 重试间隔：指数退避（1 分钟、5 分钟、15 分钟）
+- 重试条件：网络异常、临时性错误
+- 不重试场景：权限错误、输入校验失败、业务逻辑错误
+
+**告警通知**
+- 触发条件：连续失败≥3 次、任务执行超时、任务堆积（待执行>100）
+- 通知方式：站内信、邮件、Webhook（可配置）
+- 告警内容：任务 ID、失败原因、最近执行时间
+
+---
+
+---
+
 ## 3. 核心场景
 
 ### 3.1 创建每日报告任务
@@ -276,11 +331,66 @@ PAUSED → PENDING
    - 执行状态
    - 执行结果
    - 错误信息（如果有）
+   - 执行耗时
+   - 容器 ID（沙箱模式）
 
 **关键业务规则**：
 
 - 记录每次任务执行的详细信息
-- 执行历史保留一段时间
+- 执行历史保留至少 90 天
+- 敏感信息自动脱敏
+
+### 3.6 分布式任务防重复执行
+
+多实例部署环境下，同一任务只能被一个实例执行。
+
+**场景描述**：
+
+1. 多实例同时检测到任务到期
+2. 各实例尝试获取 Redis 分布式锁
+3. 仅获取锁成功的实例执行任务
+4. 获取锁失败的实例跳过本次执行
+5. 任务执行完成后主动释放锁
+6. 异常情况锁自动过期（防止死锁）
+
+**关键业务规则**：
+- 锁 key 命名：`scheduled_task:lock:{task_id}:{execute_time}`
+- 锁超时时间：任务超时时间 + 5 分钟
+- 使用 Redis SETNX + Watchdog 机制
+
+### 3.7 任务超时终止
+
+任务执行超过配置的超时时间时强制终止。
+
+**场景描述**：
+
+1. 任务执行达到配置的超时时间（默认 30 分钟）
+2. 系统强制终止任务执行（kill 容器或进程）
+3. 更新任务状态为 FAILED，记录超时错误
+4. 发送告警通知给任务创建者
+5. 清理执行容器和资源
+
+**关键业务规则**：
+- 软超时警告：达到超时时间的 80% 时提醒
+- 硬超时终止：达到超时时间立即杀死
+- 超时任务计入失败次数，触发重试逻辑
+
+### 3.8 任务执行沙箱隔离
+
+所有任务在独立的 Docker 容器中执行，确保安全性。
+
+**场景描述**：
+
+1. 任务触发时创建临时 Docker 容器
+2. 应用资源配额限制（CPU/内存）
+3. 禁用容器网络访问（防止外联）
+4. 只读文件系统 + 临时目录隔离
+5. 执行完成后销毁容器
+
+**关键业务规则**：
+- 默认镜像：`agentx/task-sandbox:latest`
+- 资源配额：1 Core CPU / 512MB Memory（可配置）
+- 安全选项：禁用所有 capabilities，禁止提权
 
 ---
 
@@ -296,15 +406,49 @@ PAUSED → PENDING
 | userId | String | 用户 ID |
 | agentId | String | Agent ID |
 | sessionId | String | 会话 ID |
-| content | String | 任务内容 |
+| content | String | 任务内容（≤10000 字符） |
 | repeatType | RepeatType | 重复类型 |
 | repeatConfig | RepeatConfig | 重复配置 |
 | status | ScheduleTaskStatus | 任务状态 |
 | lastExecuteTime | LocalDateTime | 上次执行时间 |
 | nextExecuteTime | LocalDateTime | 下次执行时间 |
+| maxRetryCount | Integer | 最大重试次数（默认 3） |
+| timeoutMinutes | Integer | 超时时间（分钟，默认 30） |
+| lastError | String | 最后一次执行错误信息 |
+| retryCount | Integer | 当前重试次数 |
+| notifyOnFailure | Boolean | 失败时是否通知（默认 true） |
+| dockerImage | String | 执行容器镜像 |
+| resourceQuota | JSON | 资源配额（cpu_limit, memory_limit） |
 | createdAt | LocalDateTime | 创建时间 |
 | updatedAt | LocalDateTime | 更新时间 |
 
 ### 4.2 RepeatConfig
 
 重复配置类，定义不同重复类型的配置参数。
+
+| 字段名 | 类型 | 说明 |
+|-------|------|------|
+| intervalHours | Integer | 间隔小时数（INTERVAL 类型使用，范围 1-8760） |
+| executeTime | String | 执行时间 HH:mm 格式（DAILY、WEEKLY 类型使用） |
+| weekDays | List<Integer> | 星期几列表（WEEKLY 类型使用，1-7） |
+| cronExpression | String | Cron 表达式（CUSTOM 类型使用，必须通过 croniter 验证） |
+
+### 4.3 TaskExecutionLog（任务执行日志）
+
+任务执行日志实体，记录每次执行的详细信息。
+
+| 字段名 | 类型 | 说明 |
+|-------|------|------|
+| id | String | 日志 ID |
+| taskId | String | 任务 ID（外键） |
+| executeTime | LocalDateTime | 执行时间 |
+| status | String | 执行状态（SUCCESS/FAILED/TIMEOUT） |
+| result | Text | 执行结果（脱敏后） |
+| errorMessage | String | 错误信息 |
+| duration | Long | 执行耗时（毫秒） |
+| containerId | String | 执行容器 ID（沙箱模式） |
+| createdAt | LocalDateTime | 创建时间 |
+
+索引：idx_task_id(task_id), idx_execute_time(execute_time)
+
+---

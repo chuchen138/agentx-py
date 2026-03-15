@@ -3,7 +3,7 @@
      【目标对象】`app/domain/apikey/model.py`
      【修改目的】定义 API Key 相关的领域模型
      【修改方式】使用 SQLAlchemy 定义 ORM 模型
-     【相关依赖】`AgentX/domain/apikey/model/*.java`
+     【相关依赖】`app/domain/agent/model.py`, `app/domain/user/model.py`
      【修改内容】
         - 创建 ApiKey 模型（api_keys 表）
         - 定义字段：id, api_key, agent_id, user_id, name, status, usage_count, last_used_at, expires_at, created_at, updated_at
@@ -14,12 +14,13 @@
      【目标对象】`app/domain/apikey/service.py`
      【修改目的】实现安全的 API Key 生成机制
      【修改方式】实现领域服务方法
-     【相关依赖】ApiKey 模型
+     【相关依赖】Python secrets 模块，ApiKey 模型
      【修改内容】
         - 实现 generate_api_key() 方法
         - 生成格式：ak_{agentId}_{randomString}
-        - 使用 UUID 或加密安全的随机数生成器
-        - 确保 API Key 的唯一性和安全性
+        - 使用 Python secrets.token_hex(16) 生成加密安全的随机字符串
+        - 确保 API Key 的唯一性和安全性（熵值 >= 128 位）
+        - 添加唯一性检查，避免冲突
 
 - [ ] 1.3 实现 API Key 验证逻辑
      【目标对象】`app/domain/apikey/service.py`
@@ -37,12 +38,13 @@
      【目标对象】`app/domain/apikey/service.py`
      【修改目的】追踪 API Key 的使用情况
      【修改方式】实现领域服务方法
-     【相关依赖】ApiKey 模型
+     【相关依赖】ApiKey 模型，SQLAlchemy
      【修改内容】
         - 实现 update_usage() 方法
         - 更新使用计数（increment by 1）
         - 更新最后使用时间
-        - 使用数据库原子操作确保一致性
+        - 使用 SQLAlchemy 原子操作确保一致性
+        - 实现并发场景下的乐观锁机制
 
 - [ ] 1.5 实现 API Key 仓储模式
      【目标对象】`app/domain/apikey/repository.py`
@@ -70,7 +72,7 @@
         - 获取 Agent 的 API Key 列表
         - 更新 API Key 状态
         - 删除 API Key
-        - 重置 API Key（生成新的 api_key）
+        - 重置 API Key（生成新的 api_key，旧密钥立即失效）
 
 - [ ] 1.7 实现 API Key 应用服务层
      【目标对象】`app/application/apikey/`
@@ -152,17 +154,19 @@
 - [ ] 1.13 编写单元测试
      【目标对象】`tests/test_apikey_service.py`
      【修改目的】确保 API Key 管理功能正确性
-     【修改方式】使用 pytest
+     【修改方式】使用 pytest + pytest-asyncio
      【相关依赖】ApiKeyAppService, ApiKeyDomainService
      【修改内容】
-        - 测试 API Key 生成
+        - 测试 API Key 生成（唯一性、格式正确性）
         - 测试 API Key 验证（有效、无效、禁用、过期）
         - 测试 API Key 创建
         - 测试 API Key 状态更新
         - 测试 API Key 删除
-        - 测试 API Key 重置
-        - 测试使用记录更新
+        - 测试 API Key 重置（旧密钥立即失效）
+        - 测试使用记录更新（并发性）
         - 测试查询功能（按用户、按 Agent、按状态、按名称）
+        - 测试过期自动清理任务
+        - 测试压力测试（QPS >= 1000）
 
 - [ ] 1.14 编写集成测试
      【目标对象】`tests/integration/test_apikey_api.py`
@@ -192,3 +196,18 @@
         - 测试并发场景下的安全性
         - 测试过期时间处理
         - 确保不会泄露敏感信息
+        - OWASP Top 10 安全检查
+        - 验证旧密钥重置后立即失效
+        - 缓存穿透/击穿保护
+
+- [ ] 1.16 实现过期密钥自动清理任务
+     【目标对象】`app/infrastructure/scheduler/apikey_cleanup.py`
+     【修改目的】定期清理过期密钥，减少数据库压力
+     【修改方式】使用 APScheduler 或 Celery Beat
+     【相关依赖】ApiKeyRepository, SQLAlchemy
+     【修改内容】
+        - 创建定时任务，每天执行一次
+        - 查询所有已过期的密钥（expires_at < NOW()）
+        - 批量删除或标记为已删除
+        - 记录清理日志
+        - 支持配置是否启用自动清理

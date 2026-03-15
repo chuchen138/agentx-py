@@ -135,6 +135,51 @@ RAG（Retrieval-Augmented Generation）管理模块是 AgentX 平台的核心能
 - 支持结果过滤和排序
 - 支持预览文档完整内容
 
+#### 6.4 示例检索请求和响应
+**检索请求示例：**
+```json
+{
+  "query": "如何使用 Python 连接 PostgreSQL 数据库",
+  "dataset_ids": ["dataset_001", "dataset_002"],
+  "search_type": "HYBRID",
+  "top_k": 10,
+  "similarity_threshold": 0.7,
+  "use_rerank": true,
+  "rerank_top_k": 5,
+  "use_hyde": false
+}
+```
+
+**检索响应示例：**
+```json
+{
+  "results": [
+    {
+      "document_unit_id": "unit_123",
+      "content": "使用 psycopg2 库连接 PostgreSQL...",
+      "similarity_score": 0.92,
+      "metadata": {
+        "file_name": "Python 数据库编程.pdf",
+        "page_number": 45,
+        "dataset_name": "技术文档"
+      }
+    },
+    {
+      "document_unit_id": "unit_456",
+      "content": "SQLAlchemy ORM 使用指南...",
+      "similarity_score": 0.88,
+      "metadata": {
+        "file_name": "SQLAlchemy 教程.md",
+        "chunk_index": 12,
+        "dataset_name": "技术文档"
+      }
+    }
+  ],
+  "total_count": 2,
+  "search_time_ms": 234
+}
+```
+
 ## 使用场景
 
 ### 场景1：企业知识库构建
@@ -277,18 +322,27 @@ RAG（Retrieval-Augmented Generation）管理模块是 AgentX 平台的核心能
 - **状态机驱动**：文档处理状态机确保流程可控
 - **策略模式**：支持多种文档处理策略，易于扩展
 - **并行检索**：向量和关键词检索并行执行，提升效率
-- **高可用支持**：Embedding和检索服务支持高可用配置
+- **高可用支持**：Embedding 和检索服务支持高可用配置
 - **用户隔离**：数据集和文件严格按用户隔离，确保安全
 - **资源配额**：支持基于配额的资源管理和限制
+- **可扩展接口**：
+  - `DocumentProcessingStrategy`：文档处理策略接口
+  - `VectorStore`：向量存储接口
+  - `SearchAlgorithm`：检索算法接口
+  - `RerankStrategy`：重排序策略接口
 
 ## 非功能需求
 
 ### 性能要求
-- 文档上传响应时间 < 2秒
-- 检索响应时间 < 1秒（1000个文档单元以内）
-- 支持单数据集至少10万个文档单元
-- 向量化吞吐量 ≥ 100文档单元/分钟
+- 文档上传响应时间 < 2 秒（不包括异步处理时间）
+- 检索响应时间 < 500ms（1000 个文档单元以内，P95）
+- 检索响应时间 < 1 秒（1 万个文档单元以内，P95）
+- 支持单数据集至少 10 万个文档单元
+- 向量化吞吐量 ≥ 100 文档单元/分钟（取决于 Embedding 模型）
 - 支持并发检索请求 ≥ 100 QPS
+- 混合检索延迟增加不超过 200ms
+- 重排序延迟增加不超过 300ms
+- 系统启动时间 < 30 秒
 
 ### 可用性要求
 - 系统可用性 ≥ 99.9%
@@ -296,27 +350,40 @@ RAG（Retrieval-Augmented Generation）管理模块是 AgentX 平台的核心能
 - 数据持久化可靠性 ≥ 99.999%
 
 ### 安全性要求
-- 数据集和文件按用户隔离
-- 支持访问控制和权限管理
-- 文件传输和存储加密
-- 审计日志记录关键操作
+- 数据集和文件严格按用户隔离，禁止跨用户访问
+- 文件上传需进行类型验证、大小限制和恶意内容检测
+- 支持 XSS 防护，对上传的文件名和内容进行过滤
+- 向量数据在传输和存储过程中需加密
+- 敏感内容过滤：发布到市场的 RAG 需经过敏感词检测和审核
+- 支持文件病毒扫描（可选集成 ClamAV 等）
+- 审计日志记录所有关键操作（创建、删除、发布等）
+- API 访问需进行身份验证和权限校验
+- 支持基于角色的访问控制（RBAC）
 
 ### 可扩展性要求
-- 支持水平扩展向量存储
-- 支持分布式文件存储
-- 支持新增文档处理策略
-- 支持新增检索算法
+- 支持水平扩展向量存储节点
+- 支持分布式文件存储（MinIO、S3 等）
+- 支持新增文档处理策略（通过策略工厂模式）
+- 支持新增检索算法（通过策略模式）
+- 支持自定义分段策略
+- 支持多种 Embedding 模型热插拔
+- 支持多租户和配额管理
+- 提供插件机制支持第三方扩展
 
 ## 约束条件
 
 ### 技术约束
-- 基于LangChain4j框架实现RAG功能
-- 使用OpenAI兼容的Embedding API
-- 向量存储支持PGVector、Milvus等
-- 需要与LLM管理模块集成
+- 基于 LangChain、LlamaIndex 或 Haystack 框架实现 RAG 功能
+- 使用 OpenAI 兼容的 Embedding API 或本地 Embedding 模型（如 sentence-transformers）
+- 向量存储支持 PGVector（使用 psycopg2 驱动）、Milvus、Chroma 等
+- OCR 支持 Tesseract、EasyOCR 或云服务 OCR API
+- 需要与 LLM 管理模块、文件存储模块集成
+- 使用 pgvector 进行向量相似度计算时，需安装 PostgreSQL 扩展
 
 ### 业务约束
-- 需要配置有效的Embedding模型
-- 需要配置有效的LLM模型（用于重排序和对话）
-- 发布到市场的RAG需要审核通过
+- 需要配置有效的 Embedding 模型
+- 需要配置有效的 LLM 模型（用于重排序和对话）
+- 发布到市场的 RAG 需要审核通过
 - 用户配额限制（文件数量、文档单元数量等）
+- 计费集成：RAG 操作（上传、向量化、检索）需记录用量并计费
+- 配额与计费挂钩，超额需升级套餐或购买额外配额

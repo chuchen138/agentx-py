@@ -43,15 +43,28 @@
 - [ ] 1.4 实现追踪数据收集器
      【目标对象】`app/domain/trace/collector/`
      【修改目的】实现执行数据实时收集
-     【修改方式】实现收集器模式
-     【相关依赖】AgentExecutionSummaryRepository, AgentExecutionDetailRepository
+     【修改方式】实现收集器模式 + AOP 装饰器
+     【相关依赖】AgentExecutionSummaryRepository, AgentExecutionDetailRepository, asyncio.Queue
      【修改内容】
         - 创建 TraceCollector
+        - **埋点位置**：
+           - LLM 调用前后：使用装饰器包装 model_chat() 方法
+           - 工具调用 wrapper：在 tool_executor 中植入埋点
+           - Agent 执行开始/结束：在 conversation_manager 中植入埋点
+        - **异步上报机制**：
+           - 使用 asyncio.Queue 作为缓冲队列（容量：10000）
+           - 后台消费者异步处理（asyncio.create_task)
+           - 批量持久化：每 100 条或每 5 秒批量写入一次
+           - 失败重试：指数退避重试（最多 3 次）
         - 实现执行上下文记录
         - 实现工具调用记录
         - 实现 LLM 调用记录
         - 实现执行错误记录
         - 实现执行时间统计
+        - **采样逻辑**：
+           - 按 Trace ID 哈希计算是否采样
+           - 错误/失败请求强制全量采集
+           - VIP 用户白名单全量采集
 
 - [ ] 1.5 实现执行追踪应用服务层
      【目标对象】`app/application/trace/`
@@ -107,15 +120,27 @@
 - [ ] 1.9 实现执行统计服务
      【目标对象】`app/application/trace/`
      【修改目的】提供执行统计功能
-     【修改方式】实现统计服务
-     【相关依赖】AgentExecutionSummaryRepository
+     【修改方式】实现统计服务 + 物化视图
+     【相关依赖】AgentExecutionSummaryRepository, Redis
      【修改内容】
+        - **聚合方式**：
+           - 实时聚合：使用 SQLAlchemy 聚合查询（COUNT, AVG, SUM）
+           - 定时聚合：每小时计算物化视图（PostgreSQL Materialized View）
+           - ClickHouse 聚合：长期方案使用 ClickHouse 的 SummingMergeTree
         - 实现按用户统计执行次数和平均耗时
         - 实现按会话统计执行次数和平均耗时
-        - 实现按时间维度统计Token消耗（日、周、月）
+        - **按时间维度统计 Token 消耗**：
+           - 日级聚合：每天凌晨计算前一天的统计数据
+           - 周级聚合：每周一计算上一周的统计数据
+           - 月级聚合：每月 1 号计算上个月的统计数据
         - 实现工具调用次数统计
         - 实现执行成功率统计
+        - **降级统计**：
+           - 按降级原因分组统计
+           - 按模型端点统计降级频率
+           - 降级持续时间计算
         - 实现统计报表生成
+        - **导出支持**：CSV、Excel 格式导出
 
 - [ ] 1.10 编写单元测试
      【目标对象】`tests/test_trace_service.py`
@@ -149,22 +174,91 @@
 - [ ] 1.12 实现执行追踪缓存策略
      【目标对象】`app/infrastructure/cache/`
      【修改目的】提高执行追踪查询性能
-     【修改方式】使用 Redis 缓存
+     【修改方式】使用 Redis 缓存 + 分层缓存
      【相关依赖】Redis
      【修改内容】
+        - **分层缓存策略**：
+           - L1 缓存：内存缓存（最近 100 条活跃会话）
+           - L2 缓存：Redis 缓存（最近 24 小时数据）
+           - L3 存储：PostgreSQL（全量数据）
         - 实现执行记录缓存装饰器
         - 实现统计信息缓存
-        - 实现缓存过期和刷新策略
-        - 实现缓存穿透保护
+        - **缓存过期和刷新策略**：
+           - 热点数据：5 分钟过期
+           - 统计数据：1 小时过期
+           - 写入时主动失效
+        - 实现缓存穿透保护（布隆过滤器）
+        - **采样数据缓存**：
+           - 开发环境：不缓存（实时查询）
+           - 生产环境：强制缓存
 
-- [ ] 1.13 实现执行链路可视化数据支持
+- [ ] 1.13 实现批量持久化和数据压缩
+     【目标对象】`app/infrastructure/trace/`
+     【修改目的】提高写入性能，降低存储成本
+     【修改方式】批量写入 + 数据压缩
+     【相关依赖】SQLAlchemy, gzip
+     【修改内容】
+        - **批量持久化**：
+           - 批量大小：100 条或每 5 秒
+           - 使用 SQLAlchemy bulk_insert_mappings
+           - 失败重试：指数退避（1s, 2s, 4s）
+           - 死信队列：重试失败后进入 DLQ
+        - **数据压缩**：
+           - 工具调用参数和响应 gzip 压缩
+           - 长文本输出压缩（>1KB）
+           - 压缩率监控（目标 60%-80%）
+        - **截断策略**：
+           - 单字段超过 50KB 自动截断
+           - 标记 is_truncated=True
+           - 记录原始长度
+
+- [ ] 1.14 实现安全过滤和权限控制
+     【目标对象】`app/api/v1/trace/`, `app/domain/trace/repository.py`
+     【修改目的】确保数据访问安全
+     【修改方式】行级安全 + 查询过滤
+     【相关依赖】FastAPI Depends, SQLAlchemy
+     【修改内容】
+        - **数据库行级安全（RLS）**：
+           - PostgreSQL RLS 策略：`WHERE user_id = current_user_id`
+           - 管理员例外：`OR is_admin = true`
+        - **查询时强制过滤**：
+           - 所有查询自动注入 user_id 条件
+           - 防止越权查询（ID 遍历攻击）
+        - **审计日志记录**：
+           - 记录查询者 ID、查询目标用户 ID、查询时间
+           - 记录查询条件和返回结果数量
+           - 异常访问检测（频繁跨用户查询）
+        - **敏感字段脱敏**：
+           - API 响应层统一脱敏处理
+           - 脱敏规则可配置化
+
+--- [ ] 1.13 实现执行链路可视化数据支持
      【目标对象】`app/application/trace/`
      【修改目的】为执行链路可视化提供数据支持
      【修改方式】实现可视化数据服务
-     【相关依赖】AgentExecutionDetailRepository
+     【相关依赖】AgentExecutionDetailRepository, Redis
      【修改内容】
-        - 实现执行步骤层级关系构建
-        - 实现执行时间线数据生成
-        - 实现工具调用链路数据生成
-        - 实现LLM调用链路数据生成
-        - 实现性能热点分析数据生成
+        - **前端数据格式**：
+           - Tree JSON：用于展示执行步骤的层级关系
+           - Timeline JSON：用于时间线展示
+           - Graph JSON：用于调用链图谱
+        - **实现执行步骤层级关系构建**：
+           - 父子步骤关系映射（parent_step_id）
+           - 步骤深度计算（depth_level）
+           - 分支路径标识（用于并行工具调用）
+        - **实现执行时间线数据生成**：
+           - 绝对时间戳序列
+           - 相对耗时（相对于执行开始时间）
+           - 关键事件标记（模型调用、工具调用、错误发生）
+        - **实现工具调用链路数据生成**：
+           - 工具调用依赖图
+           - 工具调用耗时对比柱状图数据
+           - 工具调用成功率饼图数据
+        - **实现 LLM 调用链路数据生成**：
+           - Token 消耗趋势图数据
+           - 模型响应时间折线图数据
+           - 模型成本分布饼图数据
+        - **实现性能热点分析数据生成**：
+           - 慢步骤识别（超过 P95 耗时）
+           - 资源消耗 TOP10 步骤
+           - 瓶颈步骤建议优化点

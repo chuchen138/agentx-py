@@ -300,6 +300,99 @@
           * 参数验证
           * 结果过滤
 
+- [ ] 3.8 实现自定义状态机基类
+     【目标对象】`app/domain/workflow/state_machine.py`
+     【修改目的】管理工作流状态转换
+     【修改方式】使用 Python Enum + 状态转换表
+     【相关依赖】WorkflowRepository, WorkflowEventBus
+     【修改内容】
+        - 定义 StateMachine 基类（泛型：StateT, EventT）
+          * 抽象方法：can_transition(), transition_to()
+          * 回调机制：on_state_changed(callback)
+        - 实现 AgentWorkflowStateMachine
+          * 定义状态转换规则表 STATE_TRANSITIONS
+          * 验证状态转换合法性
+          * 执行状态转换并发布事件
+          * 通知 018-task-management 持久化状态
+        - 状态恢复方法:
+          * restore_state(workflow_id) 从数据库加载
+
+- [ ] 3.9 实现内存事件总线
+     【目标对象】`app/domain/workflow/event_bus.py`
+     【修改目的】解耦工作流组件，实现异步事件处理
+     【修改方式】使用 asyncio.Queue + 观察者模式
+     【相关依赖】asyncio, heapq
+     【修改内容】
+        - 创建 AsyncioEventBus 类（单例）
+          * _subscribers: Dict[EventType, List[EventHandler]]
+          * _event_queue: asyncio.PriorityQueue
+        - 实现方法:
+          * subscribe(event_type, handler)
+          * unsubscribe(event_type, handler)
+          * publish(event_type, event_data, priority=NORMAL)
+          * start_event_loop() - 异步事件循环
+          * stop_event_loop()
+        - 优先级队列实现:
+          * 使用 heapq 管理优先级
+          * HIGH > NORMAL > LOW
+        - 背压机制:
+          * 队列满时丢弃 LOW 优先级事件
+          * 队列长度阈值：10000
+
+- [ ] 3.10 实现指数退避重试器
+     【目标对象】`app/domain/workflow/retry.py`
+     【修改目的】处理任务失败重试
+     【修改方式】使用策略模式
+     【相关依赖】无
+     【修改内容】
+        - 创建 ExponentialBackoffRetry 类
+          * max_retries = 5
+          * base_delay = 1.0s
+          * max_delay = 60.0s
+        - 实现延迟计算:
+          * delay = min(base_delay * (2 ^ attempt), max_delay)
+          * 添加随机抖动：delay + random.uniform(0, delay * 0.1)
+        - 实现重试判断:
+          * should_retry(error_type) -> bool
+          * 可重试：NetworkError, TimeoutError, ServiceUnavailable
+          * 不可重试：PermissionError, ValidationError, BusinessError
+
+- [ ] 3.11 实现 Saga 协调器
+     【目标对象】`app/domain/workflow/saga.py`
+     【修改目的】处理长工作流失败的补偿
+     【修改方式】使用 Saga 模式
+     【相关依赖】WorkflowEventRepository, TaskManager
+     【修改内容】
+        - 创建 SagaCoordinator 类
+          * 记录补偿操作：log_compensation(task, result)
+          * 执行补偿：execute_compensation(workflow_id)
+          * 补偿失败重试：retry_compensation(max_attempts=3)
+        - 补偿触发条件:
+          * 工作流整体失败
+          * 用户主动取消
+          * 不可恢复错误
+        - 补偿示例:
+          * 删除临时文件
+          * 回滚数据库事务
+          * 发送取消通知
+
+- [ ] 3.12 实现进度上报器
+     【目标对象】`app/domain/workflow/progress.py`
+     【修改目的】长任务进度上报
+     【修改方式】使用定时任务
+     【相关依赖】AgentEventBus, asyncio
+     【修改内容】
+        - 创建 ProgressReporter 类
+          * 定时上报：每 5s 发送 ProgressUpdateEvent
+          * 进度计算：completed_steps / total_steps
+          * 预计剩余时间：基于历史数据估算
+        - 触发条件:
+          * 任务执行 > 30s 自动启动
+        - 进度信息:
+          * current_step: 当前步骤描述
+          * progress: 完成百分比 (0-1)
+          * eta_seconds: 预计剩余秒数
+
 ### 4. 应用服务层
 
 - [ ] 4.1 实现工作流应用服务
@@ -597,6 +690,56 @@
         - 测试事件总线吞吐量
         - 测试内存使用情况
         - 测试状态机性能
+
+- [ ] 8.4 编写压力测试
+     【目标对象】`tests/performance/test_workflow_stress.py`
+     【修改目的】测试系统在极端负载下的表现
+     【修改方式】使用 locust 或 pytest-loadtest
+     【相关依赖】WorkflowAppService, AgentEventBus
+     【修改内容】
+        - 测试 1000+ 并发工作流
+          * 创建 1000 个并发工作流
+          * 监控成功率和响应时间
+          * 检测资源泄漏
+        - 测试事件总线高负载（10000 事件/秒）
+          * 持续发布事件 60 秒
+          * 监控队列长度和处理延迟
+          * 验证背压机制有效性
+        - 测试线程池饱和情况
+          * 提交超过线程池容量的任务
+          * 验证任务排队和拒绝策略
+          * 监控线程池指标
+        - 测试内存泄漏（长时间运行）
+          * 持续运行工作流 24 小时
+          * 每小时记录内存使用
+          * 分析内存增长趋势
+
+- [ ] 8.5 编写混沌工程测试
+     【目标对象】`tests/chaos/test_workflow_resilience.py`
+     【修改目的】测试系统在故障场景下的韧性
+     【修改方式】使用 chaos-mesh 或自定义故障注入
+     【相关依赖】WorkflowAppService, TaskManager
+     【修改内容】
+        - 模拟数据库连接中断
+          * 在工作流执行过程中断开数据库连接
+          * 验证系统是否正确重试
+          * 验证数据一致性
+        - 模拟 Redis 不可用
+          * 停止 Redis 服务或模拟网络分区
+          * 验证缓存降级策略
+          * 验证系统恢复能力
+        - 模拟线程池耗尽
+          * 占用所有线程资源
+          * 验证新任务的排队和超时处理
+          * 监控线程池恢复时间
+        - 模拟工作流中途系统重启
+          * 在工作流执行到一半时重启服务
+          * 验证工作流是否能从断点恢复
+          * 验证状态持久化有效性
+        - 模拟工具调用失败率飙升
+          * 设置工具调用 50% 失败率
+          * 验证重试机制和熔断机制
+          * 监控工作流成功率
 
 ### 9. 监控和日志
 

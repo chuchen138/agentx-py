@@ -792,10 +792,174 @@
 - [ ] 11.3 实现查询优化
      【目标对象】`app/domain/admin/repository.py`
      【修改目的】优化审计日志查询性能
-     【修改方式】数据库索引和分页
+     【修改方式】数据库索引 + 游标分页 + 覆盖索引
      【相关依赖】SQLAlchemy
      【修改内容】
-        - 添加复合索引
-        - 使用覆盖索引
-        - 实现游标分页
+        - 添加复合索引：
+          * idx_audit_logs_admin_created (admin_user_id, created_at DESC)
+          * idx_audit_logs_action_resource (action_type, resource_type, resource_id)
+          * idx_audit_logs_timerange (created_at DESC) INCLUDE (id, action_type, resource_type)
+        - 使用覆盖索引减少回表查询
+        - 实现游标分页（基于 keyset pagination，避免 offset 性能问题）
         - 避免全表扫描
+
+### 12. 监控与告警
+
+- [ ] 12.1 实现管理后台监控指标
+     【目标对象】`app/infrastructure/monitoring/`
+     【修改目的】监控管理后台运行状态
+     【修改方式】使用 Prometheus 指标 + Grafana 仪表盘
+     【相关依赖】prometheus_client, Grafana
+     【修改内容】
+        - 定义管理员操作指标 Counter
+          * admin_actions_total{action_type, admin_id, status} - 管理员操作总次数
+          * admin_action_duration_seconds_bucket{action_type} - 操作耗时直方图
+          * admin_action_failures_total{action_type, error_code} - 失败次数
+        - 定义审核指标 Gauge/Histogram
+          * tool_audits_pending{status} - 待审核数量
+          * tool_audit_duration_seconds_bucket - 审核时长直方图
+          * tool_audit_pass_rate{auditor_id} - 审核通过率
+          * tool_audit_reject_reasons_total{reason} - 拒绝原因分布
+        - 定义审计日志指标
+          * audit_logs_created_total{day} - 创建的日志数量
+          * audit_logs_stored_bytes - 存储的日志大小
+          * audit_logs_search_duration_seconds_bucket - 搜索耗时
+        - 定义权限验证指标
+          * admin_permission_checks_total{result} - 权限验证次数
+          * admin_permission_cache_hit_ratio - 缓存命中率
+
+- [ ] 12.2 实现管理后台日志记录
+     【目标对象】`app/infrastructure/logging/`
+     【修改目的】记录管理后台运行日志
+     【修改方式】使用结构化日志 + 日志收集
+     【相关依赖】loguru, Loki 或 ELK
+     【修改内容】
+        - 管理员登录/登出日志（包含 IP、设备指纹、地理位置）
+        - 权限验证日志（成功/失败、权限类型）
+        - 管理操作日志（操作类型、资源 ID、变更详情）
+        - 审核操作日志（审核 ID、审核决策、审核意见）
+        - 错误日志（堆栈跟踪、请求上下文）
+        - 安全日志（异常登录、越权尝试、暴力破解）
+        - 日志格式：JSON 结构化，包含 trace_id、span_id
+        - 日志收集：Filebeat -> Loki/ELK，支持实时检索
+
+- [ ] 12.3 实现告警规则
+     【目标对象】`ops/monitoring/alerts/`
+     【修改目的】异常情况及时通知
+     【修改方式】Prometheus AlertManager 规则
+     【相关依赖】AlertManager
+     【修改内容】
+        - 待审核工具超过阈值（>50 持续 1 小时）-> 通知审核员
+        - 审核超时超过阈值（>24 小时）-> 通知管理员
+        - 官方服务商标记为不健康（连续 3 次调用失败）-> 通知运维
+        - 权限验证失败率突增（5 分钟内 > 10%）-> 通知安全团队
+        - 审计日志写入失败 -> 通知运维
+        - 管理员异地登录（IP 归属地异常）-> 通知管理员本人
+        - 告警渠道：邮件、钉钉、企业微信、PagerDuty
+
+### 13. 安全加固
+
+- [ ] 13.1 实现双因素认证（2FA）
+     【目标对象】`app/api/v1/admin/auth/`
+     【修改目的】增强管理员登录安全
+     【修改方式】TOTP（Time-based One-Time Password）
+     【相关依赖】pyotp
+     【修改内容】
+        - 管理员首次登录强制绑定 TOTP（Google Authenticator / Microsoft Authenticator）
+        - 生成 TOTP Secret（32 位 Base32 编码），二维码展示
+        - 登录时验证 TOTP 验证码（6 位数字，30 秒有效）
+        - 备用验证码（10 个一次性验证码，防止手机丢失）
+        - 敏感操作二次验证（删除、批量审核、权限变更）
+        - 2FA 豁免：受信任设备（30 天内免验证）
+
+- [ ] 13.2 实现 IP 白名单
+     【目标对象】`app/api/middleware/admin_ip_whitelist.py`
+     【修改目的】限制管理员登录 IP 范围
+     【修改方式】中间件 IP 过滤
+     【相关依赖】FastAPI, ipaddress
+     【修改内容】
+        - 支持 IPv4/IPv6 地址段配置（CIDR 格式）
+        - 支持多个白名单 IP 段（例：192.168.1.0/24, 10.0.0.0/8）
+        - 支持动态更新白名单（Redis 缓存，TTL 永不过期）
+        - IP 不在白名单时拒绝访问（403 Forbidden）
+        - 例外：SUPER_ADMIN 不受 IP 限制（紧急情况下使用）
+
+- [ ] 13.3 实现审计日志防篡改
+     【目标对象】`app/domain/admin/service.py`
+     【修改目的】确保审计日志不可篡改
+     【修改方式】append-only 表 + 哈希链
+     【相关依赖】SQLAlchemy, hashlib
+     【修改内容】
+        - 审计日志表禁止 UPDATE/DELETE 操作（数据库权限控制）
+        - 每条日志包含 prev_log_hash 字段（上一条日志的 SHA-256 哈希）
+        - 第一条日志的 prev_log_hash 为全 0
+        - 验证日志完整性：遍历日志链，重新计算哈希比对
+        - 定期（每天）将日志哈希链根哈希上链（可选：区块链存证）
+        - 日志归档时保持哈希链连续性
+
+- [ ] 13.4 实现会话管理
+     【目标对象】`app/api/v1/admin/sessions/`
+     【修改目的】管理管理员登录会话
+     【修改方式】Redis Session + JWT 黑名单
+     【相关依赖】Redis, PyJWT
+     【修改内容】
+        - JWT Token 有效期 2 小时，Refresh Token 有效期 7 天
+        - 登出时将 Token 加入 Redis 黑名单（TTL = Token 剩余有效期）
+        - 支持强制下线（删除 Session + 加入黑名单）
+        - 支持查看活跃会话（设备信息、登录时间、最后活跃时间）
+        - 支持单管理员最多 N 个并发会话（默认 5 个）
+
+### 14. 数据归档与清理
+
+- [ ] 14.1 实现审计日志归档
+     【目标对象】`app/infrastructure/archiver/`
+     【修改目的】将冷数据迁移到低成本存储
+     【修改方式】定时任务 + S3 存储
+     【相关依赖】APScheduler, boto3
+     【修改内容】
+        - 热数据：90 天内的审计日志存 PostgreSQL
+        - 冷数据：>90 天的日志自动迁移到 S3（Glacier 存储类别）
+        - 归档格式：Parquet（列式存储，压缩比高）
+        - 归档文件命名：audit_logs_{date}_{sequence}.parquet
+        - 归档后可查询：S3 Select 或 Athena 查询
+        - 保留策略：至少保留 2 年，到期自动删除
+
+- [ ] 14.2 实现定时清理
+     【目标对象】`app/infrastructure/scheduler/`
+     【修改目的】定期清理过期数据
+     【修改方式】APScheduler 定时任务
+     【相关依赖】APScheduler
+     【修改内容】
+        - 每天凌晨 3 点执行清理任务
+        - 清理 >2 年的审计日志（先归档再删除）
+        - 清理 >30 天的临时文件（上传的工具包、截图等）
+        - 清理 >7 天的审核草稿（未提交的审核申请）
+        - 清理黑名单过期的 Token（WHERE 条件必须走索引）
+        - 审计日志分区表（按月分区，自动创建新分区）
+
+- [ ] 11.4 实现全文搜索
+     【目标对象】`app/infrastructure/search/`
+     【修改目的】支持审计日志全文搜索
+     【修改方式】pg_trgm 或 Elasticsearch
+     【相关依赖】PostgreSQL pg_trgm 扩展 或 elasticsearch-py
+     【修改内容】
+        - 方案 A（pg_trgm）：
+          * 启用 pg_trgm 扩展
+          * 创建 gin 索引：CREATE INDEX idx_audit_logs_search ON audit_logs USING gin (action_details gin_trgm_ops)
+          * 支持模糊搜索：WHERE action_details ILIKE '%keyword%'
+        - 方案 B（Elasticsearch）：
+          * 审计日志同步到 ES（Logstash 或 CDC）
+          * ES 索引配置：analyzer 使用 ik_max_word（中文分词）
+          * 支持复杂查询：多字段匹配、高亮显示、聚合统计
+        - 搜索性能目标：百万级数据 < 1s 返回
+
+- [ ] 11.5 实现热点数据预热
+     【目标对象】`app/infrastructure/cache/`
+     【修改目的】提升高频访问数据的响应速度
+     【修改方式】定时任务 + 事件驱动
+     【相关依赖】APScheduler, Redis
+     【修改内容】
+        - 官方服务商列表缓存（TTL 300 秒，变更时主动失效）
+        - 待审核工具列表缓存（TTL 60 秒）
+        - 管理员权限缓存（登录时预热，权限变更时失效）
+        - 审计日志统计缓存（每小时更新一次）
