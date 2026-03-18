@@ -724,46 +724,72 @@ AGENTX_ADMIN_PASSWORD=admin123
 ```
 app/
 ├── api/
-│   ├── v1/
-│   │   ├── routes/
-│   │   │   ├── auth.py          # 认证相关路由
-│   │   │   └── users.py         # 用户管理路由
-│   │   └── dependencies.py      # FastAPI 依赖注入
-│   └── middleware/
-│       └── auth.py              # JWT 认证中间件
-├── domain/
-│   ├── user/
-│   │   ├── model.py             # User 实体和 Pydantic 模型
-│   │   ├── repository.py        # 用户仓储接口
-│   │   └── service.py           # 用户领域服务
-│   └── auth/
-│       ├── jwt_service.py       # JWT 服务
-│       ├── password_service.py  # 密码加密服务
-│       └── sso_service.py       # SSO 服务
+│   ├── middleware/
+│   │   └── auth.py              # JWT 认证中间件
+│   └── v1/
+│       ├── auth/
+│       │   └── routes.py        # 认证相关路由
+│       └── users/
+│           └── routes.py        # 用户管理路由
 ├── application/
-│   ├── user/
-│   │   ├── user_app_service.py  # 用户应用服务
-│   │   └── dtos.py              # DTO 定义
-│   └── auth/
-│       ├── login_app_service.py     # 登录应用服务
-│       ├── register_app_service.py  # 注册应用服务
-│       └── sso_app_service.py       # SSO 应用服务
-├── infrastructure/
-│   ├── persistence/
-│   │   ├── models.py            # SQLAlchemy ORM 模型
-│   │   └── repositories.py      # 仓储实现
-│   ├── cache/
-│   │   └── redis_client.py      # Redis 客户端
-│   └── external/
-│       ├── email_service.py     # 邮件服务
-│       └── sms_service.py       # 短信服务（预留）
-└── core/
-    ├── config.py                # 配置管理
-    ├── security.py              # 安全工具函数
-    └── exceptions.py            # 自定义异常
+│   └── user/
+│       ├── login_app_service.py        # 登录应用服务
+│       ├── sso_app_service.py          # SSO 应用服务
+│       ├── user_app_service.py         # 用户应用服务
+│       └── user_settings_app_service.py # 用户设置应用服务
+├── core/
+│   ├── database.py              # 数据库配置
+│   └── redis.py                 # Redis 配置
+├── domain/
+│   └── user/
+│       ├── model.py             # User 实体和 Pydantic 模型
+│       ├── repository.py        # 用户仓储接口和实现
+│       └── service.py           # 用户领域服务
+├── tests/
+│   ├── api/
+│   │   └── v1/
+│   │       ├── auth/
+│   │       │   └── test_routes.py
+│   │       └── users/
+│   │           └── test_routes.py
+│   ├── application/
+│   │   └── user/
+│   │       ├── test_login_app_service.py
+│   │       └── test_user_app_service.py
+│   ├── core/
+│   │   └── test_redis.py
+│   └── domain/
+│       └── user/
+│           ├── test_model.py
+│           └── test_repository.py
+└── main.py                      # 应用入口
 ```
 
-### 5.4 数据库迁移
+### 5.4 API 接口
+
+### 5.4.1 认证相关接口
+
+| 路径 | 方法 | 功能 | 请求体 | 响应 |
+|------|------|------|--------|------|
+| `/api/v1/auth/register` | POST | 用户注册 | `{"email": "user@example.com", "password": "password123", "nickname": "User", "phone": "13800138000"}` | `{"user_id": "uuid", "email": "user@example.com", "nickname": "User"}` |
+| `/api/v1/auth/login` | POST | 用户登录 | `{"email": "user@example.com", "password": "password123"}` | `{"access_token": "...", "refresh_token": "...", "token_type": "bearer", "expires_in": 900}` |
+| `/api/v1/auth/logout` | POST | 用户登出 | N/A | `{"message": "登出成功"}` |
+| `/api/v1/auth/refresh` | POST | 刷新 token | `{"refresh_token": "..."}` | `{"access_token": "...", "refresh_token": "...", "token_type": "bearer", "expires_in": 900}` |
+| `/api/v1/auth/forgot-password` | POST | 忘记密码 | `{"email": "user@example.com"}` | `{"message": "验证码已发送到您的邮箱"}` |
+| `/api/v1/auth/verify-code` | POST | 验证验证码 | `{"email": "user@example.com", "code": "123456"}` | `{"message": "验证码验证成功"}` |
+| `/api/v1/auth/reset-password` | POST | 重置密码 | `{"email": "user@example.com", "code": "123456", "new_password": "newpassword123"}` | `{"message": "密码重置成功"}` |
+| `/api/v1/auth/sso/{provider}/authorize` | GET | SSO 授权入口 | N/A (查询参数: redirect_uri) | `{"authorize_url": "..."}` |
+| `/api/v1/auth/sso/{provider}/callback` | GET | SSO 回调 | N/A (查询参数: code, state) | 307 Redirect (带 token 参数) |
+
+### 5.4.2 用户管理接口
+
+| 路径 | 方法 | 功能 | 请求体 | 响应 |
+|------|------|------|--------|------|
+| `/api/v1/users/me` | GET | 获取当前用户信息 | N/A | `{"id": "uuid", "email": "user@example.com", "nickname": "User", ...}` |
+| `/api/v1/users/me` | PUT | 更新当前用户信息 | `{"nickname": "New Nickname", "phone": "13900139000"}` | `{"id": "uuid", "email": "user@example.com", "nickname": "New Nickname", ...}` |
+| `/api/v1/users/me/password` | PUT | 修改密码 | `{"old_password": "oldpassword", "new_password": "newpassword123"}` | `{"message": "密码修改成功"}` |
+
+## 5.5 数据库迁移
 
 使用 Alembic 管理数据库迁移:
 

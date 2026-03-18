@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户认证</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="auth-form">
+            <!-- 选项卡导航 -->
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="login">登录</button>
+                <button class="tab-btn" data-tab="register">注册</button>
+            </div>
+            
+            <!-- 成功提示 -->
+            <div id="success-message" class="message success" style="display: none;">
+                <span id="success-text">操作成功</span>
+            </div>
+            
+            <!-- 错误提示 -->
+            <div id="error-message" class="message error" style="display: none;">
+                <span id="error-text">操作失败</span>
+            </div>
+            
+            <!-- 登录表单 -->
+            <div id="login-tab" class="tab-content active">
+                <h2>用户登录</h2>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="login-email">邮箱</label>
+                        <input type="email" id="login-email" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">密码</label>
+                        <input type="password" id="login-password" name="password" required>
+                    </div>
+                    <div class="login-footer">
+                        <a href="forgot-password.html" class="forgot-password">找回密码</a>
+                        <button type="submit" class="auth-btn">登录</button>
+                    </div>
+                </form>
+                
+                <!-- 第三方登录 -->
+                <div class="third-party-login">
+                    <div class="divider">
+                        <span>或</span>
+                    </div>
+                    <button onclick="handleSsoLogin('github')" class="github-login">
+                        <img src="https://cdn.jsdelivr.net/npm/simple-icons@3.1.0/icons/github.svg" alt="GitHub">
+                        <span>使用 GitHub 登录</span>
+                    </button>
+                    <button onclick="handleSsoLogin('google')" class="google-login">
+                        <img src="https://cdn.jsdelivr.net/npm/simple-icons@3.1.0/icons/google.svg" alt="Google">
+                        <span>使用 Google 登录</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 注册表单 -->
+            <div id="register-tab" class="tab-content">
+                <h2>用户注册</h2>
+                <form id="register-form">
+                    <div class="form-group">
+                        <label for="register-email">邮箱</label>
+                        <input type="email" id="register-email" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-nickname">昵称</label>
+                        <input type="text" id="register-nickname" name="nickname" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password">密码</label>
+                        <input type="password" id="register-password" name="password" required>
+                    </div>
+                    <button type="submit" class="auth-btn">注册</button>
+                </form>
+            </div>
+            
+
+        </div>
+    </div>
+    
+    <script src="js/script.js"></script>
+</body>
+</html>

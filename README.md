@@ -45,6 +45,21 @@ AgentX 是一个基于大模型 (LLM) 和多能力平台 (MCP) 的智能 Agent �
 
 ## 快速开始
 
+### 启动命令
+
+**后端服务**：
+```bash
+# 启动后端API服务
+uvicorn app.main:app --reload
+```
+
+**前端服务**：
+```bash
+# 启动前端HTTP服务器
+cd frontend
+python -m http.server 8080
+```
+
 ### 一键部署（推荐）
 
 适用于想要快速体验完整功能的用户，无需下载源码，一个命令启动所有服务：

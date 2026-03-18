@@ -1,6 +1,6 @@
 ## 实施
 
-- [ ] 1.1 定义用户实体和数据模型
+- [x] 1.1 定义用户实体和数据模型
      【目标对象】`app/domain/user/model.py`
      【修改目的】定义用户相关的领域模型和数据库表结构
      【修改方式】使用 SQLAlchemy 2.0 定义 ORM 模型
@@ -8,12 +8,12 @@
      【修改内容】
         - 创建 User 模型（users 表）
         - 创建 UserSettings 模型（user_settings 表）
-        - 定义 id, username, email, password_hash, created_at, updated_at 等字段
+        - 定义 id, email, nickname, password_hash, created_at, updated_at 等字段
         - 创建外键关联（user_settings.user_id -> user.id）
-        - 实现 Pydantic Schema（UserDTO, UserSettingsDTO）
+        - 实现 Pydantic Schema（UserCreate, UserUpdate, UserResponse, UserSettingsConfig 等）
         - 定义模型索引和约束
 
-- [ ] 1.2 创建数据库迁移脚本
+- [x] 1.2 创建数据库迁移脚本
      【目标对象】`alembic/versions/`
      【修改目的】初始化用户管理相关的数据库表
      【修改方式】使用 Alembic 创建并执行迁移脚本
@@ -21,11 +21,11 @@
      【修改内容】
         - 创建 users 表迁移脚本
         - 创建 user_settings 表迁移脚本
-        - 定义索引（username, email 唯一索引）
+        - 定义索引（email 唯一索引）
         - 定义外键约束
         - 添加初始化数据（如默认用户设置）
 
-- [ ] 1.3 实现用户仓储模式
+- [x] 1.3 实现用户仓储模式
      【目标对象】`app/domain/user/repository.py`
      【修改目的】定义用户数据访问接口和实现
      【修改方式】实现 Repository 模式
@@ -34,46 +34,46 @@
         - 定义 UserRepository 接口
         - 实现 SQLAlchemy UserRepository
         - 实现 CRUD 操作（create, get_by_id, update, delete）
-        - 实现复杂查询（按 username/email 查询）
+        - 实现复杂查询（按 email、github_id 查询）
         - 实现事务管理
 
-- [ ] 1.4 实现用户领域服务
+- [x] 1.4 实现用户领域服务
      【目标对象】`app/domain/user/service.py`
      【修改目的】封装用户相关的核心业务逻辑
      【修改方式】实现领域服务层
      【相关依赖】UserRepository, Passlib, PyJWT
      【修改内容】
         - 密码加密和验证（使用 Passlib/Bcrypt）
-        - 用户注册逻辑（验证用户名/邮箱唯一性）
+        - 用户注册逻辑（验证邮箱唯一性）
         - 生成 JWT Token（包含用户信息和过期时间）
         - 验证 JWT Token
         - 用户设置管理（读取和更新 JSON 配置）
 
-- [ ] 1.5 实现 UserAppService
+- [x] 1.5 实现 UserAppService
      【目标对象】`app/application/user/user_app_service.py`
      【修改目的】编排用户信息管理的用例
      【修改方式】实现应用服务
      【相关依赖】UserDomainService, UserRepository
      【修改内容】
         - get_current_user() - 获取当前登录用户信息
-        - update_user_profile() - 更新用户基本信息（用户名、邮箱等）
+        - update_user_profile() - 更新用户基本信息（昵称、手机号、头像等）
         - delete_user() - 删除用户账号
         - change_password() - 修改密码
         - validate_user() - 验证用户状态
 
-- [ ] 1.6 实现 LoginAppService
+- [x] 1.6 实现 LoginAppService
      【目标对象】`app/application/user/login_app_service.py`
      【修改目的】处理用户登录和注册流程
      【修改方式】实现应用服务
      【相关依赖】UserDomainService, UserRepository
      【修改内容】
-        - register() - 用户注册（用户名、邮箱、密码）
+        - register() - 用户注册（邮箱、密码、昵称、手机号）
         - login() - 用户登录（验证凭据、生成 Token）
         - logout() - 用户登出（失效 Token）
         - refresh_token() - 刷新 JWT Token
         - validate_credentials() - 验证用户凭据
 
-- [ ] 1.7 实现 SsoAppService
+- [x] 1.7 实现 SsoAppService
      【目标对象】`app/application/user/sso_app_service.py`
      【修改目的】处理 SSO 单点登录流程
      【修改方式】实现应用服务
@@ -83,9 +83,9 @@
         - handle_sso_callback() - 处理 SSO 回调（获取授权码、交换 Token）
         - verify_sso_token() - 验证 SSO Token
         - create_or_link_user() - 创建新用户或关联现有用户
-        - 解构用户信息从 SSO Provider（Google、GitHub 等）
+        - 解构用户信息从 SSO Provider（GitHub）
 
-- [ ] 1.8 实现 UserSettingsAppService
+- [x] 1.8 实现 UserSettingsAppService
      【目标对象】`app/application/user/user_settings_app_service.py`
      【修改目的】管理用户偏好设置
      【修改方式】实现应用服务
@@ -95,9 +95,9 @@
         - update_user_settings() - 更新用户设置（部分更新）
         - reset_user_settings() - 重置为默认设置
         - get_setting_value() - 获取单个设置项
-        - 头像上传处理（集成文件存储服务）
+        - update_setting_value() - 更新单个设置项
 
-- [ ] 1.9 创建认证 API 路由
+- [x] 1.9 创建认证 API 路由
      【目标对象】`app/api/v1/auth/`
      【修改目的】暴露认证相关的 HTTP API
      【修改方式】使用 FastAPI 创建路由
@@ -108,9 +108,9 @@
         - `POST /api/v1/auth/logout` - 用户登出
         - `POST /api/v1/auth/refresh` - 刷新 Token
         - `GET /api/v1/auth/sso/{provider}/authorize` - SSO 授权入口
-        - `POST /api/v1/auth/sso/{provider}/callback` - SSO 回调
+        - `GET /api/v1/auth/sso/{provider}/callback` - SSO 回调
 
-- [ ] 1.10 创建用户管理 API 路由
+- [x] 1.10 创建用户管理 API 路由
      【目标对象】`app/api/v1/users/`
      【修改目的】暴露用户管理相关的 HTTP API
      【修改方式】使用 FastAPI 创建路由
@@ -122,9 +122,8 @@
         - `POST /api/v1/users/me/change-password` - 修改密码
         - `GET /api/v1/users/me/settings` - 获取用户设置
         - `PUT /api/v1/users/me/settings` - 更新用户设置
-        - `POST /api/v1/users/me/avatar` - 上传头像
 
-- [ ] 1.11 实现 JWT 认证中间件
+- [x] 1.11 实现 JWT 认证中间件
      【目标对象】`app/api/middleware/auth.py`
      【修改目的】保护需要认证的 API 端点
      【修改方式】实现 FastAPI 中间件和依赖注入
@@ -137,39 +136,40 @@
         - 实现 optional_auth 可选认证依赖
         - 定义认证异常处理器
 
-- [ ] 1.12 实现 DTO 和请求/响应模型
-     【目标对象】`app/api/v1/user/`
+- [x] 1.12 实现 DTO 和请求/响应模型
+     【目标对象】`app/api/v1/auth/routes.py` 和 `app/api/v1/users/routes.py`
      【修改目的】定义 API 数据传输对象
      【修改方式】使用 Pydantic 定义数据模型
      【相关依赖】Pydantic, UserDTO, UserSettingsDTO
      【修改内容】
-        - RegisterRequest（用户名、邮箱、密码）
-        - LoginRequest（用户名/邮箱、密码）
+        - RegisterRequest（邮箱、密码、昵称、手机号）
+        - LoginRequest（邮箱、密码）
         - LoginResponse（access_token, refresh_token, expires_in）
         - UserResponse（用户基本信息）
         - UpdateUserRequest（可更新的用户字段）
         - UserSettingsResponse（用户设置 JSON）
         - UpdateUserSettingsRequest（部分更新的设置字段）
+        - ChangePasswordRequest（当前密码、新密码、确认密码）
+        - RefreshTokenRequest（refresh_token）
 
-- [ ] 1.13 实现密码加密配置
-     【目标对象】`app/config/security.py`
+- [x] 1.13 实现密码加密配置
+     【目标对象】`app/domain/user/service.py`
      【修改目的】配置密码加密和 JWT 相关参数
      【修改方式】使用 Passlib 和 PyJWT 配置
      【相关依赖】Passlib, PyJWT
      【修改内容】
         - 配置密码加密算法（bcrypt）
-        - 定义 JWT 算法（HS256/RS256）
+        - 定义 JWT 算法（HS256）
         - 配置 Token 过期时间（access_token, refresh_token）
         - 配置 JWT 密钥（从环境变量读取）
         - 定义密码强度规则
 
-- [ ] 1.14 实现 SSO Provider 配置
-     【目标对象】`app/config/sso.py`
+- [x] 1.14 实现 SSO Provider 配置
+     【目标对象】`app/application/user/sso_app_service.py`
      【修改目的】配置支持的 SSO Providers
      【修改方式】使用 Authlib 配置 OAuth 2.0 Clients
      【相关依赖】Authlib
      【修改内容】
-        - 配置 Google OAuth 2.0
         - 配置 GitHub OAuth 2.0
         - 定义 Provider 注册表
         - 配置回调 URL
@@ -290,18 +290,16 @@
         - 定义请求/响应示例
         - 配置 Tag 分组（认证、用户管理）
 
-- [ ] 1.24 环境变量配置
-     【目标对象】`.env.example`, `app/config/settings.py`
+- [x] 1.24 环境变量配置
+     【目标对象】`.env`
      【修改目的】定义用户管理模块所需的环境变量
-     【修改方式】使用 Pydantic Settings
-     【相关依赖】Pydantic Settings, python-dotenv
+     【修改方式】使用 python-dotenv
+     【相关依赖】python-dotenv
      【修改内容】
         - JWT_SECRET_KEY
         - JWT_ALGORITHM
         - ACCESS_TOKEN_EXPIRE_MINUTES
         - REFRESH_TOKEN_EXPIRE_DAYS
-        - SSO_GOOGLE_CLIENT_ID
-        - SSO_GOOGLE_CLIENT_SECRET
         - SSO_GITHUB_CLIENT_ID
         - SSO_GITHUB_CLIENT_SECRET
         - 密码强度配置（最小长度、复杂度要求）
