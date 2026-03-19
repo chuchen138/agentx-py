@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件存储</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* 文件存储页面特定样式 */
+        .file-storage {
+            max-width: 800px;
+        }
+        
+        .storage-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .storage-header h2 {
+            margin: 0;
+            text-align: left;
+        }
+        
+        .upload-section {
+            background-color: #f9f9f9;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .upload-section h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .upload-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .upload-btn {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        
+        .upload-btn:hover {
+            background-color: #45a049;
+        }
+        
+        .file-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .file-tab-btn {
+            flex: 1;
+            padding: 10px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            color: #666;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .file-tab-btn.active {
+            color: #4CAF50;
+            border-bottom-color: #4CAF50;
+        }
+        
+        .file-list {
+            list-style: none;
+        }
+        
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            background-color: white;
+        }
+        
+        .file-info {
+            flex: 1;
+        }
+        
+        .file-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .file-meta {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .file-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .action-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background-color 0.3s;
+        }
+        
+        .download-btn {
+            background-color: #2196F3;
+            color: white;
+        }
+        
+        .download-btn:hover {
+            background-color: #1976D2;
+        }
+        
+        .delete-btn {
+            background-color: #f44336;
+            color: white;
+        }
+        
+        .delete-btn:hover {
+            background-color: #d32f2f;
+        }
+        
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+        }
+        
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        
+        .progress-container {
+            margin: 20px 0;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f3f3f3;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: #4CAF50;
+            width: 0%;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container file-storage">
+        <div class="auth-form">
+            <div class="storage-header">
+                <h2>文件存储</h2>
+                <button class="auth-btn" onclick="location.href='index.html'">返回登录</button>
+            </div>
+            
+            <!-- 成功提示 -->
+            <div id="success-message" class="message success" style="display: none;">
+                <span id="success-text">操作成功</span>
+            </div>
+            
+            <!-- 错误提示 -->
+            <div id="error-message" class="message error" style="display: none;">
+                <span id="error-text">操作失败</span>
+            </div>
+            
+            <!-- 上传区域 -->
+            <div class="upload-section">
+                <h3>上传文件</h3>
+                <p>选择文件类型进行上传</p>
+                <div class="upload-buttons">
+                    <button class="upload-btn" onclick="openUploadModal('avatar')">上传头像</button>
+                    <button class="upload-btn" onclick="openUploadModal('general')">上传通用文件</button>
+                    <button class="upload-btn" onclick="openUploadModal('rag')">上传RAG文件</button>
+                </div>
+            </div>
+            
+            <!-- 文件类型选项卡 -->
+            <div class="file-tabs">
+                <button class="file-tab-btn active" data-tab="all">全部文件</button>
+                <button class="file-tab-btn" data-tab="avatar">头像</button>
+                <button class="file-tab-btn" data-tab="general">通用文件</button>
+                <button class="file-tab-btn" data-tab="rag">RAG文件</button>
+            </div>
+            
+            <!-- 文件列表 -->
+            <div id="file-list" class="file-list">
+                <!-- 示例文件项 -->
+                <div class="file-item" data-type="avatar">
+                    <div class="file-info">
+                        <div class="file-name">avatar.png</div>
+                        <div class="file-meta">2026-03-18 16:00 | 1.5 MB | 头像</div>
+                    </div>
+                    <div class="file-actions">
+                        <button class="action-btn download-btn" onclick="downloadFile('123e4567-e89b-12d3-a456-426614174001')">下载</button>
+                        <button class="action-btn delete-btn" onclick="deleteFile('123e4567-e89b-12d3-a456-426614174001')">删除</button>
+                    </div>
+                </div>
+                <div class="file-item" data-type="general">
+                    <div class="file-info">
+                        <div class="file-name">document.txt</div>
+                        <div class="file-meta">2026-03-18 15:30 | 100 KB | 通用文件</div>
+                    </div>
+                    <div class="file-actions">
+                        <button class="action-btn download-btn" onclick="downloadFile('123e4567-e89b-12d3-a456-426614174002')">下载</button>
+                        <button class="action-btn delete-btn" onclick="deleteFile('123e4567-e89b-12d3-a456-426614174002')">删除</button>
+                    </div>
+                </div>
+                <div class="file-item" data-type="rag">
+                    <div class="file-info">
+                        <div class="file-name">dataset.pdf</div>
+                        <div class="file-meta">2026-03-18 14:45 | 2.3 MB | RAG文件</div>
+                    </div>
+                    <div class="file-actions">
+                        <button class="action-btn download-btn" onclick="downloadFile('123e4567-e89b-12d3-a456-426614174003')">下载</button>
+                        <button class="action-btn delete-btn" onclick="deleteFile('123e4567-e89b-12d3-a456-426614174003')">删除</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 上传模态框 -->
+    <div id="upload-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeUploadModal()">&times;</span>
+            <h3 id="modal-title">上传文件</h3>
+            <form id="upload-form">
+                <input type="hidden" id="file-type" value="">
+                <div class="form-group">
+                    <label for="file-input">选择文件</label>
+                    <input type="file" id="file-input" name="file" required>
+                </div>
+                <div class="form-group" id="dataset-id-group" style="display: none;">
+                    <label for="dataset-id">数据集ID</label>
+                    <input type="text" id="dataset-id" name="dataset_id" placeholder="输入数据集ID">
+                </div>
+                <div class="progress-container" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                    <p id="progress-text" style="text-align: center; margin-top: 10px;">0%</p>
+                </div>
+                <button type="submit" class="auth-btn" style="width: 100%;">上传</button>
+            </form>
+        </div>
+    </div>
+    
+    <script src="js/script.js"></script>
+    <script>
+        // 文件存储相关功能
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化选项卡
+            initFileTabs();
+            
+            // 初始化上传表单
+            initUploadForm();
+            
+            // 加载文件列表
+            refreshFileList();
+        });
+        
+        function initFileTabs() {
+            const tabBtns = document.querySelectorAll('.file-tab-btn');
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // 移除所有活动状态
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    // 添加当前活动状态
+                    this.classList.add('active');
+                    
+                    const tab = this.getAttribute('data-tab');
+                    filterFiles(tab);
+                });
+            });
+        }
+        
+        function filterFiles(type) {
+            const fileItems = document.querySelectorAll('.file-item');
+            fileItems.forEach(item => {
+                if (type === 'all' || item.getAttribute('data-type') === type) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+        
+        function openUploadModal(type) {
+            const modal = document.getElementById('upload-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const fileTypeInput = document.getElementById('file-type');
+            const datasetIdGroup = document.getElementById('dataset-id-group');
+            
+            // 设置模态框标题和文件类型
+            switch(type) {
+                case 'avatar':
+                    modalTitle.textContent = '上传头像';
+                    fileTypeInput.value = 'avatar';
+                    datasetIdGroup.style.display = 'none';
+                    break;
+                case 'general':
+                    modalTitle.textContent = '上传通用文件';
+                    fileTypeInput.value = 'general';
+                    datasetIdGroup.style.display = 'none';
+                    break;
+                case 'rag':
+                    modalTitle.textContent = '上传RAG文件';
+                    fileTypeInput.value = 'rag';
+                    datasetIdGroup.style.display = 'block';
+                    break;
+            }
+            
+            // 显示模态框
+            modal.style.display = 'block';
+        }
+        
+        function closeUploadModal() {
+            const modal = document.getElementById('upload-modal');
+            modal.style.display = 'none';
+            // 重置表单
+            document.getElementById('upload-form').reset();
+            document.getElementById('progress-container').style.display = 'none';
+        }
+        
+        function initUploadForm() {
+            const form = document.getElementById('upload-form');
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const fileType = document.getElementById('file-type').value;
+                const fileInput = document.getElementById('file-input');
+                const file = fileInput.files[0];
+                
+                if (!file) {
+                    showError('请选择文件');
+                    return;
+                }
+                
+                // 显示进度条
+                const progressContainer = document.querySelector('.progress-container');
+                const progressFill = document.getElementById('progress-fill');
+                const progressText = document.getElementById('progress-text');
+                progressContainer.style.display = 'block';
+                
+                // 模拟上传进度
+                let progress = 0;
+                const interval = setInterval(() => {
+                    progress += 10;
+                    progressFill.style.width = progress + '%';
+                    progressText.textContent = progress + '%';
+                    
+                    if (progress >= 100) {
+                        clearInterval(interval);
+                        // 模拟上传完成
+                        setTimeout(() => {
+                            closeUploadModal();
+                            showSuccess('文件上传成功');
+                            // 刷新文件列表
+                            refreshFileList();
+                        }, 500);
+                    }
+                }, 200);
+                
+                // 实际的上传逻辑
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('user_id', '123e4567-e89b-12d3-a456-426614174000'); // 示例用户ID
+                    
+                    if (fileType === 'rag') {
+                        const datasetId = document.getElementById('dataset-id').value;
+                        formData.append('dataset_id', datasetId);
+                    }
+                    
+                    const response = await fetch(`http://localhost:8000/api/v1/files/upload/${fileType}`, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('上传失败');
+                    }
+                    
+                    const data = await response.json();
+                    console.log('上传成功:', data);
+                } catch (error) {
+                    console.error('上传失败:', error);
+                    showError('上传失败: ' + error.message);
+                }
+            });
+        }
+        
+        function downloadFile(fileId, filename) {
+            // 实际的文件下载
+            showSuccess('文件下载中...');
+            const user_id = '123e4567-e89b-12d3-a456-426614174000'; // 示例用户ID
+            
+            // 构建删除请求
+            const formData = new FormData();
+            formData.append('user_id', user_id);
+            
+            fetch(`http://localhost:8000/api/v1/files/${fileId}/download`, {
+                method: 'GET'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('下载失败');
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                // 创建下载链接
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                console.log('Downloading file with name:', filename);
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showSuccess('文件下载成功');
+            })
+            .catch(error => {
+                console.error('下载失败:', error);
+                showError('下载失败: ' + error.message);
+            });
+        }
+        
+        function deleteFile(fileId) {
+            if (confirm('确定要删除这个文件吗？')) {
+                // 实际的文件删除
+                showSuccess('文件删除中...');
+                const user_id = '123e4567-e89b-12d3-a456-426614174000'; // 示例用户ID
+                
+                // 构建删除请求
+                const formData = new FormData();
+                formData.append('user_id', user_id);
+                
+                fetch(`http://localhost:8000/api/v1/files/${fileId}`, {
+                    method: 'DELETE',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('删除失败');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('删除成功:', data);
+                    showSuccess('文件删除成功');
+                    // 刷新文件列表
+                    refreshFileList();
+                })
+                .catch(error => {
+                    console.error('删除失败:', error);
+                    showError('删除失败: ' + error.message);
+                });
+            }
+        }
+        
+        function refreshFileList() {
+            // 实际刷新文件列表
+            console.log('刷新文件列表');
+            const user_id = '123e4567-e89b-12d3-a456-426614174000'; // 示例用户ID
+            
+            fetch(`http://localhost:8000/api/v1/files/my/list?user_id=${user_id}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('获取文件列表失败');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('文件列表:', data);
+                // 更新UI显示文件列表
+                const fileListContainer = document.getElementById('file-list');
+                // 清空现有文件列表
+                fileListContainer.innerHTML = '';
+                
+                // 添加新的文件项
+                if (data.items && data.items.length > 0) {
+                    data.items.forEach(file => {
+                        const fileItem = document.createElement('div');
+                        fileItem.className = 'file-item';
+                        fileItem.setAttribute('data-type', file.file_type.toLowerCase());
+                        
+                        // 格式化文件大小
+                        const fileSize = formatFileSize(file.file_size);
+                        
+                        // 格式化创建时间
+                        const createdAt = new Date(file.created_at).toLocaleString();
+                        
+                        // 确定文件类型显示名称
+                        let fileTypeDisplay = '通用文件';
+                        if (file.file_type === 'AVATAR') {
+                            fileTypeDisplay = '头像';
+                        } else if (file.file_type === 'RAG') {
+                            fileTypeDisplay = 'RAG文件';
+                        }
+                        
+                        fileItem.innerHTML = `
+                            <div class="file-info">
+                                <div class="file-name">${file.original_filename}</div>
+                                <div class="file-meta">${createdAt} | ${fileSize} | ${fileTypeDisplay}</div>
+                            </div>
+                            <div class="file-actions">
+                                <button class="action-btn download-btn" onclick="downloadFile('${file.id}', '${file.original_filename}')">下载</button>
+                                <button class="action-btn delete-btn" onclick="deleteFile('${file.id}')">删除</button>
+                            </div>
+                        `;
+                        
+                        fileListContainer.appendChild(fileItem);
+                    });
+                } else {
+                    // 显示空文件列表提示
+                    const emptyMessage = document.createElement('div');
+                    emptyMessage.className = 'file-item';
+                    emptyMessage.style.textAlign = 'center';
+                    emptyMessage.innerHTML = '暂无文件';
+                    fileListContainer.appendChild(emptyMessage);
+                }
+            })
+            .catch(error => {
+                console.error('获取文件列表失败:', error);
+                showError('获取文件列表失败: ' + error.message);
+            });
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        function showSuccess(message) {
+            const successMessage = document.getElementById('success-message');
+            const successText = document.getElementById('success-text');
+            successText.textContent = message;
+            successMessage.style.display = 'block';
+            setTimeout(() => {
+                successMessage.style.display = 'none';
+            }, 3000);
+        }
+        
+        function showError(message) {
+            const errorMessage = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
+            errorText.textContent = message;
+            errorMessage.style.display = 'block';
+            setTimeout(() => {
+                errorMessage.style.display = 'none';
+            }, 3000);
+        }
+        
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('upload-modal');
+            if (event.target == modal) {
+                closeUploadModal();
+            }
+        }
+    </script>
+</body>
+</html>

@@ -2,7 +2,7 @@
 
 ### 1. 领域模型和基础设施
 
-- [ ] 1.1 定义文件存储领域模型
+- [x] 1.1 定义文件存储领域模型
      【目标对象】`app/domain/file/`
      【修改目的】定义文件存储相关的领域模型和枚举
      【修改方式】使用 SQLAlchemy 定义 ORM 模型，Pydantic 定义 Schema
@@ -48,7 +48,7 @@
           - created_at: DateTime
         - 实现版本查询和回滚逻辑
 
-- [ ] 1.3 定义存储后端抽象接口
+- [x] 1.3 定义存储后端抽象接口
      【目标对象】`app/infrastructure/storage/backend/`
      【修改目的】统一不同存储后端的操作
      【修改方式】使用 ABC 定义抽象基类
@@ -66,7 +66,7 @@
         - 定义异步接口（AsyncStorageBackend）
           - async save(...), async load(...), etc.
 
-- [ ] 1.4 实现本地存储适配器
+- [x] 1.4 实现本地存储适配器
      【目标对象】`app/infrastructure/storage/backend/local_storage.py`
      【修改目的】支持本地文件系统存储
      【修改方式】实现 StorageBackend 接口
@@ -120,9 +120,23 @@
         - 实现分片上传
         - 生成临时访问密钥
 
+- [ ] 1.8 实现 Minio 存储适配器
+     【目标对象】`app/infrastructure/storage/backend/minio_storage.py`
+     【修改目的】支持 Minio 对象存储
+     【修改方式】实现 StorageBackend 接口
+     【相关依赖】StorageBackend, minio>=7.1.0
+     【修改内容】
+        - 实现 MinioStorageBackend 类
+        - 配置 Endpoint、AccessKey、SecretKey、Bucket
+        - 实现文件上传下载
+        - 实现分片上传（multipart upload）
+        - 生成预签名 URL（Presigned URL）
+        - 存储桶策略管理
+        - 生命周期管理配置
+
 ### 2. 策略模式实现
 
-- [ ] 2.1 定义文件存储策略接口
+- [x] 2.1 定义文件存储策略接口
      【目标对象】`app/application/file/strategy/file_storage_strategy.py`
      【修改目的】定义文件存储策略的统一接口
      【修改方式】使用 ABC 定义抽象基类
@@ -137,7 +151,7 @@
           - get_storage_backend() -> StorageBackend
         - 定义异步支持（可选）
 
-- [ ] 2.2 实现头像文件存储策略
+- [x] 2.2 实现头像文件存储策略
      【目标对象】`app/application/file/strategy/avatar_file_storage_strategy.py`
      【修改目的】实现头像文件的存储策略
      【修改方式】实现 FileStorageStrategy 接口
@@ -152,7 +166,7 @@
         - MIME 类型验证
         - 图片损坏检测
 
-- [ ] 2.3 实现通用文件存储策略
+- [x] 2.3 实现通用文件存储策略
      【目标对象】`app/application/file/strategy/general_file_storage_strategy.py`
      【修改目的】实现通用文件的存储策略
      【修改方式】实现 FileStorageStrategy 接口
@@ -166,7 +180,7 @@
         - MIME 类型检测（python-magic）
         - 文件名 sanitization
 
-- [ ] 2.4 实现 RAG 文件存储策略
+- [x] 2.4 实现 RAG 文件存储策略
      【目标对象】`app/application/file/strategy/rag_file_storage_strategy.py`
      【修改目的】实现 RAG 数据集文件的存储策略
      【修改方式】实现 FileStorageStrategy 接口
@@ -183,7 +197,7 @@
         - 文件版本管理
         - 批量上传支持
 
-- [ ] 2.5 实现文件存储策略工厂
+- [x] 2.5 实现文件存储策略工厂
      【目标对象】`app/application/file/factory/file_storage_strategy_factory.py`
      【修改目的】根据文件类型返回对应的存储策略
      【修改方式】实现工厂模式
@@ -198,7 +212,7 @@
 
 ### 3. 应用服务层
 
-- [ ] 3.1 实现文件存储应用服务
+- [x] 3.1 实现文件存储应用服务
      【目标对象】`app/application/file/service/file_storage_app_service.py`
      【修改目的】编排文件存储相关的用例
      【修改方式】实现应用服务类
@@ -244,7 +258,7 @@
 
 ### 4. API 层
 
-- [ ] 4.1 实现文件上传端点
+- [x] 4.1 实现文件上传端点
      【目标对象】`app/api/v1/files/`
      【修改目的】暴露文件上传相关的 HTTP API
      【修改方式】使用 FastAPI 创建路由
@@ -263,7 +277,7 @@
         - `POST /api/v1/files/upload/chunk/{upload_id}` - 上传分片
         - `POST /api/v1/files/upload/chunked/complete/{upload_id}` - 完成分片上传
 
-- [ ] 4.2 实现文件查询和管理端点
+- [x] 4.2 实现文件查询和管理端点
      【目标对象】`app/api/v1/files/`
      【修改目的】提供文件查询和管理 API
      【修改方式】使用 FastAPI 创建路由
@@ -292,7 +306,7 @@
 
 ### 5. 安全和验证
 
-- [ ] 5.1 实现文件上传中间件
+- [x] 5.1 实现文件上传中间件
      【目标对象】`app/api/middleware/file_upload_middleware.py`
      【修改目的】验证上传文件的合法性和大小
      【修改方式】实现 FastAPI Depends 依赖
@@ -304,7 +318,7 @@
         - 恶意文件检测（可选：ClamAV 扫描）
         - 上传频率限制（基于用户 ID）
 
-- [ ] 5.2 实现访问权限验证
+- [x] 5.2 实现访问权限验证
      【目标对象】`app/api/dependencies/file_permission.py`
      【修改目的】验证用户对文件的访问权限
      【修改方式】实现 FastAPI Depends 依赖
@@ -317,7 +331,7 @@
 
 ### 6. 配置和工具
 
-- [ ] 6.1 实现文件存储配置
+- [x] 6.1 实现文件存储配置
      【目标对象】`app/application/file/config/file_storage_config.py`
      【修改目的】配置文件存储相关参数
      【修改方式】使用 Pydantic Settings
@@ -332,7 +346,7 @@
         - 缓存配置（TTL、最大缓存数）
         - 安全配置（白名单、病毒扫描开关）
 
-- [ ] 6.2 实现文件类型白名单配置
+- [x] 6.2 实现文件类型白名单配置
      【目标对象】`app/application/file/config/file_type_whitelist.py`
      【修改目的】配置文件类型白名单
      【修改方式】使用 Pydantic 和字典配置
@@ -345,7 +359,7 @@
 
 ### 7. 测试
 
-- [ ] 7.1 编写单元测试
+- [x] 7.1 编写单元测试
      【目标对象】`tests/unit/test_file_storage/`
      【修改目的】确保文件存储功能正确性
      【修改方式】使用 pytest 和 pytest-asyncio
@@ -365,7 +379,7 @@
         - test_cache_service.py - 测试缓存服务
         - test_chunked_upload.py - 测试分片上传
 
-- [ ] 7.2 编写集成测试
+- [x] 7.2 编写集成测试
      【目标对象】`tests/integration/test_file_endpoints.py`
      【修改目的】测试 API 端点的完整流程
      【修改方式】使用 TestClient 和 pytest
@@ -404,7 +418,7 @@
 
 ### 8. 监控和日志
 
-- [ ] 8.1 实现文件操作日志记录
+- [x] 8.1 实现文件操作日志记录
      【目标对象】`app/application/file/service/file_audit_service.py`
      【修改目的】记录文件操作审计日志
      【修改方式】使用结构化日志库
@@ -417,7 +431,7 @@
         - 包含上下文信息（IP、User-Agent）
         - 敏感信息掩码
 
-- [ ] 8.2 实现监控指标上报
+- [x] 8.2 实现监控指标上报
      【目标对象】`app/infrastructure/metrics/file_metrics.py`
      【修改目的】收集文件存储相关指标
      【修改方式】使用 Prometheus 客户端

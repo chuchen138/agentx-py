@@ -82,23 +82,114 @@
 
 ### 1. 文件类型识别
 
+通过文件扩展名和MIME类型进行文件类型识别，支持以下类型：
+- **RAG**：RAG 文档文件（PDF, DOC, DOCX, TXT, MD, CSV）
+- **AVATAR**：用户头像文件（JPG, JPEG, PNG, WebP）
+- **GENERAL**：通用文件（其他类型）
 
 ### 2. 策略自动注册
 
-利用 Spring 的依赖注入机制，自动收集所有 FileStorageStrategy 实现：
-
+利用依赖注入机制，自动收集所有 FileStorageStrategy 实现，通过 FileStorageStrategyFactory 管理。
 
 ### 3. 降级机制
 
-当未找到特定策略时，自动降级到通用策略：
+当未找到特定策略时，自动降级到通用策略（GeneralFileStorageStrategy）。
 
 ### 4. API 端点
-  - `POST /files/upload` - 文件上传
-  - `GET /files/{url}` - 根据URL获取文件
-  - `DELETE /files/{url}` - 删除文件
-  - `GET /files/avatar/upload` - 头像上传
-  - `GET /files/rag/upload` - RAG 文件上传
-  - `GET /files/general/upload` - 通用文件上传
+
+#### 文件上传
+- `POST /api/v1/files/upload/avatar` - 头像上传
+  - **请求参数**：file (UploadFile), user_id (UUID)
+  - **响应**：FileUploadResponse
+  - **文件限制**：≤ 2MB，支持 JPG, JPEG, PNG, WebP
+  - **Curl 命令**：
+    ```bash
+    curl -X POST "http://localhost:8000/api/v1/files/upload/avatar" -F "file=@test.jpg" -F "user_id=123e4567-e89b-12d3-a456-426614174000"
+    ```
+
+- `POST /api/v1/files/upload/general` - 通用文件上传
+  - **请求参数**：file (UploadFile), user_id (UUID)
+  - **响应**：FileUploadResponse
+  - **文件限制**：≤ 50MB，支持多种文件类型
+  - **Curl 命令**：
+    ```bash
+    curl -X POST "http://localhost:8000/api/v1/files/upload/general" -F "file=@test.txt" -F "user_id=123e4567-e89b-12d3-a456-426614174000"
+    ```
+
+- `POST /api/v1/files/upload/rag` - RAG 文件上传
+  - **请求参数**：file (UploadFile), user_id (UUID), dataset_id (UUID)
+  - **响应**：FileUploadResponse
+  - **文件限制**：≤ 500MB，支持 PDF, DOC, DOCX, TXT, MD, CSV
+  - **Curl 命令**：
+    ```bash
+    curl -X POST "http://localhost:8000/api/v1/files/upload/rag" -F "file=@test.pdf" -F "user_id=123e4567-e89b-12d3-a456-426614174000" -F "dataset_id=123e4567-e89b-12d3-a456-426614174001"
+    ```
+
+- `POST /api/v1/files/upload/chunked/init` - 初始化分片上传
+  - **请求参数**：file_name (str), file_size (int), chunk_count (int), user_id (UUID)
+  - **响应**：{"upload_id": "..."}
+
+- `POST /api/v1/files/upload/chunk/{upload_id}` - 上传分片
+  - **请求参数**：chunk_index (int), chunk_data (bytes)
+  - **响应**：{"success": true}
+
+- `POST /api/v1/files/upload/chunked/complete/{upload_id}` - 完成分片上传
+  - **响应**：FileUploadResponse
+
+#### 文件查询和管理
+- `GET /api/v1/files/{file_id}` - 获取文件信息
+  - **响应**：FileRecordResponse
+  - **Curl 命令**：
+    ```bash
+    curl "http://localhost:8000/api/v1/files/123e4567-e89b-12d3-a456-426614174000"
+    ```
+
+- `PUT /api/v1/files/{file_id}` - 更新文件
+  - **请求参数**：file (UploadFile), user_id (UUID)
+  - **响应**：FileRecordResponse
+  - **Curl 命令**：
+    ```bash
+    curl -X PUT "http://localhost:8000/api/v1/files/123e4567-e89b-12d3-a456-426614174000" -F "file=@updated.txt" -F "user_id=123e4567-e89b-12d3-a456-426614174000"
+    ```
+
+- `DELETE /api/v1/files/{file_id}` - 删除文件
+  - **请求参数**：user_id (UUID)
+  - **响应**：{"message": "File deleted successfully"}
+  - **Curl 命令**：
+    ```bash
+    curl -X DELETE "http://localhost:8000/api/v1/files/123e4567-e89b-12d3-a456-426614174000" -F "user_id=123e4567-e89b-12d3-a456-426614174000"
+    ```
+
+- `GET /api/v1/files/{file_id}/download` - 下载文件
+  - **响应**：文件流
+  - **Curl 命令**：
+    ```bash
+    curl -OJ "http://localhost:8000/api/v1/files/123e4567-e89b-12d3-a456-426614174000/download"
+    ```
+
+- `GET /api/v1/files/{file_id}/url` - 获取临时访问 URL
+  - **请求参数**：expires_in (int, 默认为 3600)
+  - **响应**：{"url": "...", "expires_at": "..."}
+  - **Curl 命令**：
+    ```bash
+    curl "http://localhost:8000/api/v1/files/123e4567-e89b-12d3-a456-426614174000/url?expires_in=3600"
+    ```
+
+- `GET /api/v1/files/my/list` - 获取我的文件列表
+  - **请求参数**：user_id (UUID), page (int), page_size (int), file_type (str)
+  - **响应**：{"items": [...], "total": 100, "page": 1, "page_size": 10}
+  - **Curl 命令**：
+    ```bash
+    curl "http://localhost:8000/api/v1/files/my/list?user_id=123e4567-e89b-12d3-a456-426614174000&page=1&page_size=10"
+    ```
+
+- `POST /api/v1/files/batch-delete` - 批量删除文件
+  - **请求参数**：file_ids (List[UUID]), user_id (UUID)
+  - **响应**：{"success": true, "deleted_count": 3}
+  - **Curl 命令**：
+    ```bash
+    curl -X POST "http://localhost:8000/api/v1/files/batch-delete" -H "Content-Type: application/json" -d '{"file_ids": ["123e4567-e89b-12d3-a456-426614174000", "123e4567-e89b-12d3-a456-426614174001"], "user_id": "123e4567-e89b-12d3-a456-426614174000"}'
+    ```
 
 ## 扩展点
 
@@ -106,19 +197,40 @@
 
 1. 在 FileTypeEnum 中添加新类型
 2. 实现 FileStorageStrategy 接口
-3. 使用 @Component 注解标记策略
-4. 策略自动注册到工厂
+3. 注册到策略工厂
+4. 策略自动被工厂管理
 
 ### 2. 自定义存储后端
 
-通过实现 X-File-Storage 的存储器接口，支持多种存储后端：
+通过实现 StorageBackend 接口，支持多种存储后端：
 - 本地存储
-- 对象存储（S3、OSS、COS）
-- 分布式文件系统（HDFS）
+- Minio 对象存储（S3 兼容）
+- 阿里云 OSS
+- AWS S3
+- 腾讯云 COS
 
-### 3. 策略热更新
+### 3. Minio 存储配置
 
-策略作为 Spring Bean，支持：
+Minio 是一个高性能的对象存储服务，兼容 S3 API，适合作为文件存储的后端。
+
+**配置要点**：
+- **Endpoint**：Minio 服务地址，格式为 `host:port`
+- **Access Key**：访问密钥
+- **Secret Key**： secret 密钥
+- **Bucket**：存储桶名称
+- **Secure**：是否使用 HTTPS
+- **Region**：存储区域
+
+**优势**：
+- 高性能：支持高并发读写
+- 可扩展性：支持横向扩展
+- S3 兼容：可无缝切换到其他 S3 兼容存储
+- 本地部署：适合开发和测试环境
+- 企业级特性：支持版本控制、生命周期管理等
+
+### 4. 策略热更新
+
+策略作为单例对象管理，支持：
 - 运行时动态替换策略实现
 - 基于配置的条件激活策略
 - 策略优先级控制
@@ -130,14 +242,19 @@
 ```yaml
 file-storage:
   enabled: true
-  default-platform: local
+  default-platform: minio
   platforms:
     local:
-      domain: http://localhost:8080
+      domain: http://localhost:8000
       path-prefix: /uploads/
-    oss:
-      endpoint: oss-cn-hangzhou.aliyuncs.com
+      root-dir: ./uploads
+    minio:
+      endpoint: localhost:9000
+      access-key: minioadmin
+      secret-key: minioadmin
       bucket: agentx-files
+      secure: false
+      region: us-east-1
     rag-storage:
       bucket: rag-documents
       path-prefix: /rag/

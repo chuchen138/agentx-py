@@ -95,6 +95,7 @@
 - **异步支持**: asyncio (Python 3.9+)
 - **存储适配器**: 
   - 本地存储：标准文件系统 API
+  - Minio：minio>=7.1.0
   - 阿里云 OSS：aliyun-python-sdk-oss
   - AWS S3：boto3>=1.26
   - 腾讯云 COS：cos-python-sdk-v5

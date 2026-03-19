@@ -2,10 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.auth.routes import router as auth_router
 from app.api.v1.users.routes import router as users_router
+from app.api import api_router as file_router
 
 app = FastAPI(
-    title="AgentX User Management API",
-    description="用户管理模块 API",
+    title="AgentX API",
+    description="AgentX 核心 API",
     version="1.0.0"
 )
 
@@ -21,10 +22,11 @@ app.add_middleware(
 # 注册路由
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["认证"])
 app.include_router(users_router, prefix="/api/v1/users", tags=["用户管理"])
+app.include_router(file_router, prefix="/api")
 
 @app.get("/")
 def root():
-    return {"message": "AgentX User Management API"}
+    return {"message": "AgentX API"}
 
 @app.get("/health")
 def health_check():
