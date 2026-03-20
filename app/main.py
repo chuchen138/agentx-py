@@ -3,6 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.auth.routes import router as auth_router
 from app.api.v1.users.routes import router as users_router
 from app.api import api_router as file_router
+from app.core.database import create_tables
+
+# 创建数据库表
+create_tables()
 
 app = FastAPI(
     title="AgentX API",

@@ -1,23 +1,25 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from app.api.middleware.auth import get_current_user
 from app.domain.user.model import UserModel, UserUpdate, UserResponse, UserSettingsResponse, UserSettingsConfig
-from app.domain.user.repository import RedisUserRepository, RedisUserSettingsRepository
+from app.domain.user.repository import SQLAlchemyUserRepository, SQLAlchemyUserSettingsRepository
 from app.domain.user.service import UserDomainService, UserSettingsDomainService
 from app.application.user.user_app_service import UserAppService
 from app.application.user.user_settings_app_service import UserSettingsAppService
+from app.core.database import get_db
+from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 router = APIRouter()
 
 # 依赖项
-def get_user_app_service():
-    user_repo = RedisUserRepository()
-    settings_repo = RedisUserSettingsRepository()
-    user_domain_service = UserDomainService(user_repo, settings_repo)
+def get_user_app_service(db: Session = Depends(get_db)):
+    user_repo = SQLAlchemyUserRepository(db)
+    settings_repo = SQLAlchemyUserSettingsRepository(db)
+    user_domain_service = UserDomainService(user_repo, settings_repo, db)
     return UserAppService(user_domain_service)
 
-def get_user_settings_app_service():
-    settings_repo = RedisUserSettingsRepository()
+def get_user_settings_app_service(db: Session = Depends(get_db)):
+    settings_repo = SQLAlchemyUserSettingsRepository(db)
     settings_domain_service = UserSettingsDomainService(settings_repo)
     return UserSettingsAppService(settings_domain_service)
 

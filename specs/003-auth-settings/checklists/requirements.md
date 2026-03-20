@@ -1,5 +1,5 @@
 ## 实施
-- [ ] 1.1 定义认证设置实体和数据模型
+- [x] 1.1 定义认证设置实体和数据模型
      【目标对象】`app/domain/auth/`
      【修改目的】定义认证设置相关的领域模型
      【修改方式】使用 SQLAlchemy 定义 ORM 模型
@@ -9,7 +9,7 @@
         - 实现枚举类型（FeatureType: LOGIN, FEATURE）
         - 实现 Pydantic Schema
 
-- [ ] 1.2 实现认证设置仓储模式
+- [x] 1.2 实现认证设置仓储模式
      【目标对象】`app/domain/auth/repository.py`
      【修改目的】定义认证设置数据访问接口
      【修改方式】实现 Repository 模式
@@ -22,7 +22,7 @@
         - 实现按 feature_key 查询
         - 实现查询已启用的配置
 
-- [ ] 1.3 实现认证设置领域服务
+- [x] 1.3 实现认证设置领域服务
      【目标对象】`app/domain/auth/service.py`
      【修改目的】封装认证设置相关的业务逻辑
      【修改方式】实现领域服务层
@@ -35,13 +35,13 @@
         - 检查功能是否启用
         - 配置校验逻辑
 
-- [ ] 1.4 实现应用服务层
+- [x] 1.4 实现应用服务层
      【目标对象】`app/application/auth/`
      【修改目的】编排认证设置相关的用例
      【修改方式】实现应用服务
      【相关依赖】AuthSettingDomainService
      【修改内容】
-        - 实现 AuthSettingAppService（认证配置管理）
+        - 实现认证设置功能集成到 AuthAppService（认证配置管理）
         - getAuthConfig - 获取前端认证配置（包含登录方式和功能开关）
         - getAllAuthSettings - 获取所有认证配置
         - getAuthSettingById - 根据ID获取配置
@@ -61,11 +61,11 @@
         - updateEntity - 更新实体（从 DTO）
         - 实现配置 JSON 序列化/反序列化
 
-- [ ] 1.6 创建 API 路由（FastAPI）
+- [x] 1.6 创建 API 路由（FastAPI）
      【目标对象】`app/api/v1/auth/`
      【修改目的】暴露认证相关的 HTTP API
      【修改方式】使用 FastAPI 创建路由
-     【相关依赖】AuthSettingAppService
+     【相关依赖】AuthAppService
      【修改内容】
         - `GET /api/v1/auth/config` - 获取前端认证配置
         - `GET /api/v1/auth/settings` - 获取所有认证配置
@@ -102,7 +102,7 @@
      【目标对象】`tests/test_auth_setting_service.py`
      【修改目的】确保认证设置功能正确性
      【修改方式】使用 pytest
-     【相关依赖】AuthSettingAppService
+     【相关依赖】AuthAppService
      【修改内容】
         - 测试认证配置创建
         - 测试认证配置更新
@@ -117,7 +117,7 @@
      【目标对象】`tests/integration/test_auth_setting_api.py`
      【修改目的】确保认证 API 端到端正常工作
      【修改方式】使用 FastAPI TestClient
-     【相关依赖】FastAPI, AuthSettingAppService
+     【相关依赖】FastAPI, AuthAppService
      【修改内容】
         - 测试获取前端配置端点
         - 测试获取所有配置端点

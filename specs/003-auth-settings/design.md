@@ -12,22 +12,21 @@
 
 ```
 应用层（Application）
-├─ AuthSettingAppService（业务编排）
-│  └─ 主要方法：getAuthConfig, getAllAuthSettings, 
-│    getAuthSettingById, toggleAuthSetting, 
-│    updateAuthSetting, deleteAuthSetting
+├─ AuthAppService（业务编排）
+│  └─ 主要方法：get_auth_config, get_all_auth_settings, 
+│    get_auth_setting_by_id, toggle_auth_setting, 
+│    update_auth_setting, delete_auth_setting, create_auth_setting
 ├─ DTO（数据传输对象）
-│  └─ AuthConfigDTO, AuthSettingDTO, 
-│    LoginMethodDTO, UpdateAuthSettingRequest
-└─ Assembler（转换器）
-   └─ AuthSettingAssembler
+│  └─ AuthConfigDTO, AuthSettingResponse, 
+│    LoginMethodDTO, AuthSettingUpdate, AuthSettingCreate
          ↓
 领域层（Domain）
-├─ AuthSettingDomainService（领域服务）
+├─ AuthDomainService（认证领域服务）
+├─ AuthSettingDomainService（认证设置领域服务）
 ├─ Constant（常量枚举）
-│  └─ AuthFeatureKey, FeatureType
+│  └─ AuthFeatureKey, FeatureType, SsoProvider
 ├─ Model（领域模型）
-│  └─ AuthSettingEntity
+│  └─ AuthSettingModel, VerificationCode
 └─ Repository（仓储接口）
    └─ AuthSettingRepository
          ↓
@@ -92,20 +91,22 @@
 
 #### 2.2.1 数据模型
 
-**认证配置实体（AuthSettingEntity）**
+**认证配置实体（AuthSettingModel）**
 
 核心字段设计：
 
 | 字段名 | 类型 | 说明 |
 |--------|------|------|
 | id | String | 主键，UUID |
-| featureType | String | 功能类型（LOGIN/REGISTER） |
-| featureKey | String | 功能键，唯一标识 |
-| featureName | String | 功能显示名称 |
+| feature_type | String | 功能类型（LOGIN/REGISTER） |
+| feature_key | String | 功能键，唯一标识 |
+| feature_name | String | 功能显示名称 |
 | enabled | Boolean | 启用状态 |
-| configData | Map<String, Object> | 扩展配置数据（JSON） |
-| displayOrder | Integer | 显示顺序 |
+| config_data | JSON | 扩展配置数据（JSON） |
+| display_order | Integer | 显示顺序 |
 | description | String | 功能描述 |
+| created_at | DateTime | 创建时间 |
+| updated_at | DateTime | 更新时间 |
 
 #### 2.2.2 数据库表结构
 
@@ -126,7 +127,7 @@
 
 #### 2.2.3 JSON 配置存储
 
-使用 MyBatis-Plus 的 TypeHandler 实现配置数据的 JSON 转换，支持灵活存储不同类型的配置参数。
+使用 SQLAlchemy 的 JSON 类型实现配置数据的存储，支持灵活存储不同类型的配置参数。
 
 **优势**：
 - 灵活存储不同类型的配置参数
@@ -160,7 +161,7 @@
 
 ### 3.1 应用层接口
 
-#### 3.1.1 AuthSettingAppService
+#### 3.1.1 AuthAppService
 
 **获取前端认证配置**
 - 功能：获取前端所需的认证配置，包括所有启用的登录方式和注册开关状态
@@ -302,7 +303,7 @@ Request → UpdateAuthSettingRequest
     ↓
 Controller.getAuthConfig()
     ↓
-AuthSettingAppService.getAuthConfig()
+AuthAppService.getAuthConfig()
     ↓
 1. 查询启用的登录方式
    AuthSettingDomainService.getEnabledFeatures(FeatureType.LOGIN)
@@ -329,7 +330,7 @@ AuthSettingAppService.getAuthConfig()
     ↓
 Controller.toggleAuthSetting(id)
     ↓
-AuthSettingAppService.toggleAuthSetting(id)
+AuthAppService.toggleAuthSetting(id)
     ↓
 1. 查询配置
    AuthSettingDomainService.getById(id)
@@ -352,7 +353,7 @@ AuthSettingAppService.toggleAuthSetting(id)
     ↓
 Controller.updateAuthSetting(id, request)
     ↓
-AuthSettingAppService.updateAuthSetting(id, request)
+AuthAppService.updateAuthSetting(id, request)
     ↓
 1. 查询原配置
    AuthSettingDomainService.getById(id)
@@ -408,7 +409,7 @@ AuthSettingAppService.updateAuthSetting(id, request)
 
 ### 8.1 查询优化
 
-- 使用 MyBatis-Plus 的 Lambda 查询，避免 SQL 注入
+- 使用 SQLAlchemy 的 ORM 查询，避免 SQL 注入
 - 字段索引：在 `feature_type` 和 `feature_key` 上建立索引
 - 排序优化：按 `display_order` 排序，减少前端排序负担
 
@@ -476,8 +477,8 @@ AuthSettingAppService.updateAuthSetting(id, request)
 
 ## 12. 技术栈
 
-- **框架**：Spring Boot + Spring
-- **ORM**：MyBatis-Plus
-- **数据库**：MySQL（或其他关系型数据库）
-- **JSON 处理**：Jackson
-- **类型转换**：MyBatis-Plus TypeHandler
+- **框架**：FastAPI
+- **ORM**：SQLAlchemy
+- **数据库**：PostgreSQL（或其他关系型数据库）
+- **JSON 处理**：Pydantic
+- **类型转换**：SQLAlchemy JSON 类型

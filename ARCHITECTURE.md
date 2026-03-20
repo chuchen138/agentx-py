@@ -134,7 +134,7 @@ AgentX 采用分层架构设计，将系统分为前端、后端 API、服务层
   - **多模态支持**：文件上传、图片等多模态内容理解、文件 URL 管理
   - **高可用支持**：模型故障转移、服务商高可用策略、故障恢复
   - **计费与配额**：Token 使用量统计、实时余额检查、用量记录持久化
-- **消息类型**：TEXT、TOOL_CALL、TASK_EXEC、RAG 各阶段状态消息
+- **消息类型**：TEXT、TOOL\_CALL、TASK\_EXEC、RAG 各阶段状态消息
 - **消息角色**：USER、SYSTEM、ASSISTANT、SUMMARY（历史消息）
 
 ### 2.5 工具集成模块 (Tool Integration)
@@ -148,7 +148,7 @@ AgentX 采用分层架构设计，将系统分为前端、后端 API、服务层
   - **工具发布**：版本管理（语义化版本号）、版本快照、发布到工具市场
   - **工具安装与卸载**：一键安装、版本升级、卸载限制（不可卸载自己创建的工具）
 - **状态机流转**：
-  WAITING_REVIEW → GITHUB_URL_VALIDATE → DEPLOYING → FETCHING_TOOLS → MANUAL_REVIEW → APPROVED/FAILED
+  WAITING\_REVIEW → GITHUB\_URL\_VALIDATE → DEPLOYING → FETCHING\_TOOLS → MANUAL\_REVIEW → APPROVED/FAILED
 - **异步处理能力**：
   - 长期运行操作（部署、获取工具列表）采用异步处理
   - 使用线程池异步执行状态处理器
@@ -178,7 +178,7 @@ AgentX 采用分层架构设计，将系统分为前端、后端 API、服务层
     - 重排序（Rerank）：二次优化排序、提高精确度
     - HyDE 技术：Hypothetical Document Embeddings、提升复杂查询理解
   - **文档处理状态机**：
-    UPLOADED → OCR_PROCESSING → OCR_COMPLETED → EMBEDDING_PROCESSING → COMPLETED
+    UPLOADED → OCR\_PROCESSING → OCR\_COMPLETED → EMBEDDING\_PROCESSING → COMPLETED
   - **版本与发布**：
     - 语义化版本管理、版本快照、审核机制
     - RAG 市场：浏览、安装市场中的 RAG 版本
@@ -349,11 +349,11 @@ AgentX 采用分层架构设计，将系统分为前端、后端 API、服务层
     - 状态同步：同步支付状态
     - 事件触发：支付成功后触发业务处理
 - **计费类型**：
-  - **MODEL_USAGE**：按输入输出 Token 计费
-  - **AGENT_CREATION**：按创建次数计费
-  - **AGENT_USAGE**：按使用次数或资源消耗计费
-  - **API_CALL**：按 API 调用次数计费
-  - **STORAGE_USAGE**：按存储容量和时长计费
+  - **MODEL\_USAGE**：按输入输出 Token 计费
+  - **AGENT\_CREATION**：按创建次数计费
+  - **AGENT\_USAGE**：按使用次数或资源消耗计费
+  - **API\_CALL**：按 API 调用次数计费
+  - **STORAGE\_USAGE**：按存储容量和时长计费
 - **事件驱动**：
   - PurchaseSuccessEvent：支付成功事件
   - 异步事件机制提升解耦和可扩展性
@@ -414,44 +414,44 @@ AgentX 采用分层架构设计，将系统分为前端、后端 API、服务层
 
 ### 3.1 后端技术栈
 
-| 技术 | 版本 | 用途 |
-|------|------|------|
-| Java | 17+ | 主要开发语言 |
-| Spring Boot | 3.x | 应用框架 |
-| FastAPI | 0.104+ | Python 服务 API 框架 |
-| PostgreSQL | 14+ | 关系型数据库 |
-| PGVector | 0.5+ | 向量数据库插件 |
-| RabbitMQ | 3.10+ | 消息队列 |
-| Redis | 7.0+ | 缓存、会话存储 |
-| Docker | 24+ | 容器化运行时 |
-| MyBatis-Plus | 3.5+ | ORM 框架 |
-| LangChain4j | 0.24+ | LLM 集成框架 |
-| JWT | - | 身份认证 |
-| MapStruct | 1.5+ | DTO 映射 |
-| Lombok | 1.18+ | 代码简化 |
+| 技术           | 版本     | 用途               |
+| ------------ | ------ | ---------------- |
+| Java         | 17+    | 主要开发语言           |
+| Spring Boot  | 3.x    | 应用框架             |
+| FastAPI      | 0.104+ | Python 服务 API 框架 |
+| PostgreSQL   | 14+    | 关系型数据库           |
+| PGVector     | 0.5+   | 向量数据库插件          |
+| RabbitMQ     | 3.10+  | 消息队列             |
+| Redis        | 7.0+   | 缓存、会话存储          |
+| Docker       | 24+    | 容器化运行时           |
+| MyBatis-Plus | 3.5+   | ORM 框架           |
+| LangChain4j  | 0.24+  | LLM 集成框架         |
+| JWT          | -      | 身份认证             |
+| MapStruct    | 1.5+   | DTO 映射           |
+| Lombok       | 1.18+  | 代码简化             |
 
 ### 3.2 前端技术栈
 
-| 技术 | 版本 | 用途 |
-|------|------|------|
-| React | 18+ | 前端框架 |
-| TypeScript | 5.0+ | 类型系统 |
-| Ant Design | 5.0+ | UI 组件库 |
-| Axios | 1.6+ | HTTP 客户端 |
-| Redux/Zustand | 4.2+ | 状态管理 |
-| React Router | 6+ | 路由管理 |
+| 技术            | 版本   | 用途       |
+| ------------- | ---- | -------- |
+| React         | 18+  | 前端框架     |
+| TypeScript    | 5.0+ | 类型系统     |
+| Ant Design    | 5.0+ | UI 组件库   |
+| Axios         | 1.6+ | HTTP 客户端 |
+| Redux/Zustand | 4.2+ | 状态管理     |
+| React Router  | 6+   | 路由管理     |
 
 ### 3.3 基础设施
 
-| 组件 | 技术 | 用途 |
-|------|------|------|
-| 容器编排 | Docker Compose / Kubernetes | 容器部署和管理 |
-| 服务发现 | Consul / Nacos | 服务注册与发现 |
-| API 网关 | Kong / APISIX | API 路由、限流、认证 |
-| 监控告警 | Prometheus + Grafana | 系统监控和告警 |
-| 日志系统 | ELK Stack | 日志收集和分析 |
-| 链路追踪 | SkyWalking / Zipkin | 分布式链路追踪 |
-| 配置中心 | Apollo / Nacos | 集中化配置管理 |
+| 组件     | 技术                          | 用途           |
+| ------ | --------------------------- | ------------ |
+| 容器编排   | Docker Compose / Kubernetes | 容器部署和管理      |
+| 服务发现   | Consul / Nacos              | 服务注册与发现      |
+| API 网关 | Kong / APISIX               | API 路由、限流、认证 |
+| 监控告警   | Prometheus + Grafana        | 系统监控和告警      |
+| 日志系统   | ELK Stack                   | 日志收集和分析      |
+| 链路追踪   | SkyWalking / Zipkin         | 分布式链路追踪      |
+| 配置中心   | Apollo / Nacos              | 集中化配置管理      |
 
 ## 4. 数据库设计
 
@@ -459,456 +459,458 @@ AgentX 采用分层架构设计，将系统分为前端、后端 API、服务层
 
 #### 4.1.1 users 用户表
 
-| 字段名 | 数据类型 | 约束 | 描述 |
-|--------|----------|------|------|
-| id | UUID | PRIMARY KEY | 用户唯一标识 |
-| nickname | VARCHAR(100) | NOT NULL | 用户昵称 |
-| email | VARCHAR(255) | UNIQUE NOT NULL | 邮箱 |
-| phone | VARCHAR(20) | | 手机号 |
-| password | VARCHAR(255) | NOT NULL | BCrypt 加密密码 |
-| avatar_url | VARCHAR(500) | | 头像 URL |
-| github_id | VARCHAR(100) | UNIQUE | GitHub 用户 ID |
-| github_login | VARCHAR(100) | | GitHub 登录名 |
-| login_platform | VARCHAR(20) | NOT NULL | 登录平台 (normal/github) |
-| is_admin | BOOLEAN | DEFAULT FALSE | 是否管理员 |
-| created_at | TIMESTAMP | DEFAULT NOW() | 创建时间 |
-| updated_at | TIMESTAMP | DEFAULT NOW() | 更新时间 |
+| 字段名             | 数据类型         | 约束              | 描述                   |
+| --------------- | ------------ | --------------- | -------------------- |
+| id              | UUID         | PRIMARY KEY     | 用户唯一标识               |
+| nickname        | VARCHAR(100) | NOT NULL        | 用户昵称                 |
+| email           | VARCHAR(255) | UNIQUE NOT NULL | 邮箱                   |
+| phone           | VARCHAR(20)  | <br />          | 手机号                  |
+| password        | VARCHAR(255) | NOT NULL        | BCrypt 加密密码          |
+| avatar\_url     | VARCHAR(500) | <br />          | 头像 URL               |
+| github\_id      | VARCHAR(100) | UNIQUE          | GitHub 用户 ID         |
+| github\_login   | VARCHAR(100) | <br />          | GitHub 登录名           |
+| login\_platform | VARCHAR(20)  | NOT NULL        | 登录平台 (normal/github) |
+| is\_admin       | BOOLEAN      | DEFAULT FALSE   | 是否管理员                |
+| created\_at     | TIMESTAMP    | DEFAULT NOW()   | 创建时间                 |
+| updated\_at     | TIMESTAMP    | DEFAULT NOW()   | 更新时间                 |
 
-#### 4.1.2 user_settings 用户设置表
+#### 4.1.2 user\_settings 用户设置表
 
-| 字段名 | 数据类型 | 约束 | 描述 |
-|--------|----------|------|------|
-| id | UUID | PRIMARY KEY | 设置 ID |
-| user_id | UUID | REFERENCES users(id) | 用户 ID |
-| default_model | VARCHAR(100) | | 默认聊天模型 ID |
-| default_ocr_model | VARCHAR(100) | | 默认 OCR 模型 ID |
-| default_embedding_model | VARCHAR(100) | | 默认嵌入模型 ID |
-| fallback_config | JSONB | | 降级链配置 |
-| created_at | TIMESTAMP | DEFAULT NOW() | 创建时间 |
-| updated_at | TIMESTAMP | DEFAULT NOW() | 更新时间 |
+| 字段名                       | 数据类型         | 约束                   | 描述           |
+| ------------------------- | ------------ | -------------------- | ------------ |
+| id                        | UUID         | PRIMARY KEY          | 设置 ID        |
+| user\_id                  | UUID         | REFERENCES users(id) | 用户 ID        |
+| default\_model            | VARCHAR(100) | <br />               | 默认聊天模型 ID    |
+| default\_ocr\_model       | VARCHAR(100) | <br />               | 默认 OCR 模型 ID |
+| default\_embedding\_model | VARCHAR(100) | <br />               | 默认嵌入模型 ID    |
+| fallback\_config          | JSONB        | <br />               | 降级链配置        |
+| created\_at               | TIMESTAMP    | DEFAULT NOW()        | 创建时间         |
+| updated\_at               | TIMESTAMP    | DEFAULT NOW()        | 更新时间         |
 
-#### 4.1.3 llm_providers LLM 服务商表
+#### 4.1.3 llm\_providers LLM 服务商表
 
-| 字段名 | 数据类型 | 约束 | 描述 |
-|--------|----------|------|------|
-| id | UUID | PRIMARY KEY | 服务商 ID |
-| name | VARCHAR(100) | NOT NULL | 服务商名称 |
-| protocol | VARCHAR(50) | NOT NULL | 协议类型 (openai/moonshot/azure) |
-| api_key | TEXT | NOT NULL | API Key（加密存储） |
-| base_url | VARCHAR(255) | | 自定义 Base URL |
-| is_official | BOOLEAN | DEFAULT FALSE | 是否官方服务商 |
-| user_id | UUID | REFERENCES users(id) | 创建者 ID（用户级资源） |
-| status | VARCHAR(20) | DEFAULT 'ACTIVE' | 状态 (ACTIVE/INACTIVE) |
-| created_at | TIMESTAMP | DEFAULT NOW() | 创建时间 |
-| updated_at | TIMESTAMP | DEFAULT NOW() | 更新时间 |
+| 字段名          | 数据类型         | 约束                   | 描述                           |
+| ------------ | ------------ | -------------------- | ---------------------------- |
+| id           | UUID         | PRIMARY KEY          | 服务商 ID                       |
+| name         | VARCHAR(100) | NOT NULL             | 服务商名称                        |
+| protocol     | VARCHAR(50)  | NOT NULL             | 协议类型 (openai/moonshot/azure) |
+| api\_key     | TEXT         | NOT NULL             | API Key（加密存储）                |
+| base\_url    | VARCHAR(255) | <br />               | 自定义 Base URL                 |
+| is\_official | BOOLEAN      | DEFAULT FALSE        | 是否官方服务商                      |
+| user\_id     | UUID         | REFERENCES users(id) | 创建者 ID（用户级资源）                |
+| status       | VARCHAR(20)  | DEFAULT 'ACTIVE'     | 状态 (ACTIVE/INACTIVE)         |
+| created\_at  | TIMESTAMP    | DEFAULT NOW()        | 创建时间                         |
+| updated\_at  | TIMESTAMP    | DEFAULT NOW()        | 更新时间                         |
 
-#### 4.1.4 llm_models LLM 模型表
+#### 4.1.4 llm\_models LLM 模型表
 
-| 字段名 | 数据类型 | 约束 | 描述 |
-|--------|----------|------|------|
-| id | UUID | PRIMARY KEY | 模型 ID |
-| provider_id | UUID | REFERENCES llm_providers(id) | 所属服务商 ID |
-| name | VARCHAR(100) | NOT NULL | 模型名称 |
-| model_endpoint | VARCHAR(100) | NOT NULL | 模型部署名称 |
-| type | VARCHAR(20) | NOT NULL | 模型类型 (CHAT/EMBEDDING) |
-| is_official | BOOLEAN | DEFAULT FALSE | 是否官方模型 |
-| status | VARCHAR(20) | DEFAULT 'ACTIVE' | 状态 (ACTIVE/INACTIVE) |
-| created_at | TIMESTAMP | DEFAULT NOW() | 创建时间 |
-| updated_at | TIMESTAMP | DEFAULT NOW() | 更新时间 |
+| 字段名             | 数据类型         | 约束                            | 描述                    |
+| --------------- | ------------ | ----------------------------- | --------------------- |
+| id              | UUID         | PRIMARY KEY                   | 模型 ID                 |
+| provider\_id    | UUID         | REFERENCES llm\_providers(id) | 所属服务商 ID              |
+| name            | VARCHAR(100) | NOT NULL                      | 模型名称                  |
+| model\_endpoint | VARCHAR(100) | NOT NULL                      | 模型部署名称                |
+| type            | VARCHAR(20)  | NOT NULL                      | 模型类型 (CHAT/EMBEDDING) |
+| is\_official    | BOOLEAN      | DEFAULT FALSE                 | 是否官方模型                |
+| status          | VARCHAR(20)  | DEFAULT 'ACTIVE'              | 状态 (ACTIVE/INACTIVE)  |
+| created\_at     | TIMESTAMP    | DEFAULT NOW()                 | 创建时间                  |
+| updated\_at     | TIMESTAMP    | DEFAULT NOW()                 | 更新时间                  |
 
 #### 4.1.5 agents 智能体表
 
-| 字段名 | 数据类型 | 约束 | 描述 |
-|--------|----------|------|------|
-| id | UUID | PRIMARY KEY | Agent ID |
-| user_id | UUID | REFERENCES users(id) | 创建者 ID |
-| name | VARCHAR(100) | NOT NULL | Agent 名称 |
-| avatar_url | VARCHAR(500) | | 头像 URL |
-| description | TEXT | | 描述 |
-| system_prompt | TEXT | | 系统提示词 |
-| welcome_message | TEXT | | 欢迎消息 |
-| tool_ids | UUID[] | | 关联的工具 ID 列表 |
-| knowledge_base_ids | UUID[] | | 关联的知识库 ID 列表 |
-| tool_presets | JSONB | | 工具预设参数 |
-| multimodal_config | JSONB | | 多模态配置 |
-| status | VARCHAR(20) | DEFAULT 'ENABLED' | 状态 (ENABLED/DISABLED) |
-| created_at | TIMESTAMP | DEFAULT NOW() | 创建时间 |
-| updated_at | TIMESTAMP | DEFAULT NOW() | 更新时间 |
+| 字段名                  | 数据类型         | 约束                   | 描述                    |
+| -------------------- | ------------ | -------------------- | --------------------- |
+| id                   | UUID         | PRIMARY KEY          | Agent ID              |
+| user\_id             | UUID         | REFERENCES users(id) | 创建者 ID                |
+| name                 | VARCHAR(100) | NOT NULL             | Agent 名称              |
+| avatar\_url          | VARCHAR(500) | <br />               | 头像 URL                |
+| description          | TEXT         | <br />               | 描述                    |
+| system\_prompt       | TEXT         | <br />               | 系统提示词                 |
+| welcome\_message     | TEXT         | <br />               | 欢迎消息                  |
+| tool\_ids            | UUID\[]      | <br />               | 关联的工具 ID 列表           |
+| knowledge\_base\_ids | UUID\[]      | <br />               | 关联的知识库 ID 列表          |
+| tool\_presets        | JSONB        | <br />               | 工具预设参数                |
+| multimodal\_config   | JSONB        | <br />               | 多模态配置                 |
+| status               | VARCHAR(20)  | DEFAULT 'ENABLED'    | 状态 (ENABLED/DISABLED) |
+| created\_at          | TIMESTAMP    | DEFAULT NOW()        | 创建时间                  |
+| updated\_at          | TIMESTAMP    | DEFAULT NOW()        | 更新时间                  |
 
-#### 4.1.6 agent_versions 智能体版本表
+#### 4.1.6 agent\_versions 智能体版本表
 
-| 字段名 | 数据类型 | 约束 | 描述 |
-|--------|----------|------|------|
-| id | UUID | PRIMARY KEY | 版本 ID |
-| agent_id | UUID | REFERENCES agents(id) | Agent ID |
-| version | VARCHAR(20) | NOT NULL | 版本号 (x.y.z) |
-| change_log | TEXT | | 变更日志 |
-| snapshot | JSONB | NOT NULL | 版本快照（完整配置） |
-| publish_status | VARCHAR(20) | DEFAULT 'REVIEWING' | 发布状态 |
-| published_at | TIMESTAMP | | 发布时间 |
-| created_at | TIMESTAMP | DEFAULT NOW() | 创建时间 |
+| 字段名             | 数据类型        | 约束                    | 描述          |
+| --------------- | ----------- | --------------------- | ----------- |
+| id              | UUID        | PRIMARY KEY           | 版本 ID       |
+| agent\_id       | UUID        | REFERENCES agents(id) | Agent ID    |
+| version         | VARCHAR(20) | NOT NULL              | 版本号 (x.y.z) |
+| change\_log     | TEXT        | <br />                | 变更日志        |
+| snapshot        | JSONB       | NOT NULL              | 版本快照（完整配置）  |
+| publish\_status | VARCHAR(20) | DEFAULT 'REVIEWING'   | 发布状态        |
+| published\_at   | TIMESTAMP   | <br />                | 发布时间        |
+| created\_at     | TIMESTAMP   | DEFAULT NOW()         | 创建时间        |
 
-#### 4.1.7 agent_widgets 智能体 Widget 表
+#### 4.1.7 agent\_widgets 智能体 Widget 表
 
-| 字段名 | 数据类型 | 约束 | 描述 |
-|--------|----------|------|------|
-| id | UUID | PRIMARY KEY | Widget ID |
-| agent_id | UUID | REFERENCES agents(id) | Agent ID |
-| public_id | VARCHAR(100) | UNIQUE NOT NULL | 公开 ID（嵌入使用） |
-| name | VARCHAR(100) | NOT NULL | Widget 名称 |
-| type | VARCHAR(20) | NOT NULL | 类型 (AGENT/RAG) |
-| model_id | UUID | | 使用的模型 ID |
-| allowed_domains | TEXT[] | | 域名白名单 |
-| daily_limit | INTEGER | DEFAULT -1 | 每日调用限制 (-1 无限制) |
-| knowledge_base_ids | UUID[] | | 知识库 ID 列表（RAG 类型） |
-| enabled | BOOLEAN | DEFAULT TRUE | 启用状态 |
-| created_at | TIMESTAMP | DEFAULT NOW() | 创建时间 |
+| 字段名                  | 数据类型         | 约束                    | 描述                |
+| -------------------- | ------------ | --------------------- | ----------------- |
+| id                   | UUID         | PRIMARY KEY           | Widget ID         |
+| agent\_id            | UUID         | REFERENCES agents(id) | Agent ID          |
+| public\_id           | VARCHAR(100) | UNIQUE NOT NULL       | 公开 ID（嵌入使用）       |
+| name                 | VARCHAR(100) | NOT NULL              | Widget 名称         |
+| type                 | VARCHAR(20)  | NOT NULL              | 类型 (AGENT/RAG)    |
+| model\_id            | UUID         | <br />                | 使用的模型 ID          |
+| allowed\_domains     | TEXT\[]      | <br />                | 域名白名单             |
+| daily\_limit         | INTEGER      | DEFAULT -1            | 每日调用限制 (-1 无限制)   |
+| knowledge\_base\_ids | UUID\[]      | <br />                | 知识库 ID 列表（RAG 类型） |
+| enabled              | BOOLEAN      | DEFAULT TRUE          | 启用状态              |
+| created\_at          | TIMESTAMP    | DEFAULT NOW()         | 创建时间              |
 
-#### 4.1.8 workspace_agents 工作区 Agent 表
+#### 4.1.8 workspace\_agents 工作区 Agent 表
 
-| 字段名 | 数据类型 | 约束 | 描述 |
-|--------|----------|------|------|
-| id | UUID | PRIMARY KEY | ID |
-| user_id | UUID | REFERENCES users(id) | 用户 ID |
-| agent_id | UUID | REFERENCES agents(id) | Agent ID |
-| model_id | UUID | | 自定义模型 ID |
-| temperature | DOUBLE | DEFAULT 0.7 | 温度参数 |
-| top_p | DOUBLE | DEFAULT 0.7 | Top P 参数 |
-| top_k | INTEGER | DEFAULT 50 | Top K 参数 |
-| max_tokens | INTEGER | | 最大 Token 数 |
-| strategy_type | VARCHAR(20) | DEFAULT 'NONE' | Token 溢出策略 |
-| reserve_ratio | DOUBLE | | 预留缓冲比例 |
-| summary_threshold | INTEGER | | 摘要触发阈值 |
-| created_at | TIMESTAMP | DEFAULT NOW() | 创建时间 |
-| updated_at | TIMESTAMP | DEFAULT NOW() | 更新时间 |
+| 字段名                | 数据类型        | 约束                    | 描述         |
+| ------------------ | ----------- | --------------------- | ---------- |
+| id                 | UUID        | PRIMARY KEY           | ID         |
+| user\_id           | UUID        | REFERENCES users(id)  | 用户 ID      |
+| agent\_id          | UUID        | REFERENCES agents(id) | Agent ID   |
+| model\_id          | UUID        | <br />                | 自定义模型 ID   |
+| temperature        | DOUBLE      | DEFAULT 0.7           | 温度参数       |
+| top\_p             | DOUBLE      | DEFAULT 0.7           | Top P 参数   |
+| top\_k             | INTEGER     | DEFAULT 50            | Top K 参数   |
+| max\_tokens        | INTEGER     | <br />                | 最大 Token 数 |
+| strategy\_type     | VARCHAR(20) | DEFAULT 'NONE'        | Token 溢出策略 |
+| reserve\_ratio     | DOUBLE      | <br />                | 预留缓冲比例     |
+| summary\_threshold | INTEGER     | <br />                | 摘要触发阈值     |
+| created\_at        | TIMESTAMP   | DEFAULT NOW()         | 创建时间       |
+| updated\_at        | TIMESTAMP   | DEFAULT NOW()         | 更新时间       |
 
 #### 4.1.9 tools 工具表
 
-| 字段名 | 数据类型 | 约束 | 描述 |
-|--------|----------|------|------|
-| id | UUID | PRIMARY KEY | 工具 ID |
-| user_id | UUID | REFERENCES users(id) | 创建者 ID |
-| name | VARCHAR(100) | NOT NULL | 工具名称 |
-| description | TEXT | | 描述 |
-| github_repo_url | VARCHAR(500) | NOT NULL | GitHub 仓库 URL |
-| install_command | TEXT | | 安装命令 |
-| mcp_server_config | JSONB | | MCP 服务器配置 |
-| status | VARCHAR(20) | DEFAULT 'WAITING_REVIEW' | 状态机状态 |
-| is_global | BOOLEAN | DEFAULT FALSE | 是否全局工具 |
-| tools_definition | JSONB | | 工具定义列表 |
-| created_at | TIMESTAMP | DEFAULT NOW() | 创建时间 |
-| updated_at | TIMESTAMP | DEFAULT NOW() | 更新时间 |
+| 字段名                 | 数据类型         | 约束                        | 描述            |
+| ------------------- | ------------ | ------------------------- | ------------- |
+| id                  | UUID         | PRIMARY KEY               | 工具 ID         |
+| user\_id            | UUID         | REFERENCES users(id)      | 创建者 ID        |
+| name                | VARCHAR(100) | NOT NULL                  | 工具名称          |
+| description         | TEXT         | <br />                    | 描述            |
+| github\_repo\_url   | VARCHAR(500) | NOT NULL                  | GitHub 仓库 URL |
+| install\_command    | TEXT         | <br />                    | 安装命令          |
+| mcp\_server\_config | JSONB        | <br />                    | MCP 服务器配置     |
+| status              | VARCHAR(20)  | DEFAULT 'WAITING\_REVIEW' | 状态机状态         |
+| is\_global          | BOOLEAN      | DEFAULT FALSE             | 是否全局工具        |
+| tools\_definition   | JSONB        | <br />                    | 工具定义列表        |
+| created\_at         | TIMESTAMP    | DEFAULT NOW()             | 创建时间          |
+| updated\_at         | TIMESTAMP    | DEFAULT NOW()             | 更新时间          |
 
-#### 4.1.10 tool_versions 工具版本表
+#### 4.1.10 tool\_versions 工具版本表
 
-| 字段名 | 数据类型 | 约束 | 描述 |
-|--------|----------|------|------|
-| id | UUID | PRIMARY KEY | 版本 ID |
-| tool_id | UUID | REFERENCES tools(id) | 工具 ID |
-| version | VARCHAR(20) | NOT NULL | 版本号 |
-| change_log | TEXT | | 更新日志 |
-| is_published | BOOLEAN | DEFAULT FALSE | 是否已发布 |
-| created_at | TIMESTAMP | DEFAULT NOW() | 创建时间 |
+| 字段名           | 数据类型        | 约束                   | 描述    |
+| ------------- | ----------- | -------------------- | ----- |
+| id            | UUID        | PRIMARY KEY          | 版本 ID |
+| tool\_id      | UUID        | REFERENCES tools(id) | 工具 ID |
+| version       | VARCHAR(20) | NOT NULL             | 版本号   |
+| change\_log   | TEXT        | <br />               | 更新日志  |
+| is\_published | BOOLEAN     | DEFAULT FALSE        | 是否已发布 |
+| created\_at   | TIMESTAMP   | DEFAULT NOW()        | 创建时间  |
 
-#### 4.1.11 user_tools 用户工具安装表
+#### 4.1.11 user\_tools 用户工具安装表
 
-| 字段名 | 数据类型 | 约束 | 描述 |
-|--------|----------|------|------|
-| id | UUID | PRIMARY KEY | ID |
-| user_id | UUID | REFERENCES users(id) | 用户 ID |
-| tool_id | UUID | REFERENCES tools(id) | 工具 ID |
-| version_id | UUID | REFERENCES tool_versions(id) | 版本 ID |
-| mcp_server_name | VARCHAR(100) | | MCP 服务器名称 |
-| installed_at | TIMESTAMP | DEFAULT NOW() | 安装时间 |
+| 字段名               | 数据类型         | 约束                            | 描述        |
+| ----------------- | ------------ | ----------------------------- | --------- |
+| id                | UUID         | PRIMARY KEY                   | ID        |
+| user\_id          | UUID         | REFERENCES users(id)          | 用户 ID     |
+| tool\_id          | UUID         | REFERENCES tools(id)          | 工具 ID     |
+| version\_id       | UUID         | REFERENCES tool\_versions(id) | 版本 ID     |
+| mcp\_server\_name | VARCHAR(100) | <br />                        | MCP 服务器名称 |
+| installed\_at     | TIMESTAMP    | DEFAULT NOW()                 | 安装时间      |
 
-#### 4.1.12 rag_datasets RAG 数据集表
+#### 4.1.12 rag\_datasets RAG 数据集表
 
-| 字段名 | 数据类型 | 约束 | 描述 |
-|--------|----------|------|------|
-| id | UUID | PRIMARY KEY | 数据集 ID |
-| user_id | UUID | REFERENCES users(id) | 创建者 ID |
-| name | VARCHAR(100) | NOT NULL | 数据集名称 |
-| description | TEXT | | 描述 |
-| embedding_model_id | UUID | | Embedding 模型 ID |
-| document_count | INTEGER | DEFAULT 0 | 文档数量 |
-| unit_count | INTEGER | DEFAULT 0 | 文档单元数量 |
-| status | VARCHAR(20) | DEFAULT 'ACTIVE' | 状态 |
-| created_at | TIMESTAMP | DEFAULT NOW() | 创建时间 |
-| updated_at | TIMESTAMP | DEFAULT NOW() | 更新时间 |
+| 字段名                  | 数据类型         | 约束                   | 描述              |
+| -------------------- | ------------ | -------------------- | --------------- |
+| id                   | UUID         | PRIMARY KEY          | 数据集 ID          |
+| user\_id             | UUID         | REFERENCES users(id) | 创建者 ID          |
+| name                 | VARCHAR(100) | NOT NULL             | 数据集名称           |
+| description          | TEXT         | <br />               | 描述              |
+| embedding\_model\_id | UUID         | <br />               | Embedding 模型 ID |
+| document\_count      | INTEGER      | DEFAULT 0            | 文档数量            |
+| unit\_count          | INTEGER      | DEFAULT 0            | 文档单元数量          |
+| status               | VARCHAR(20)  | DEFAULT 'ACTIVE'     | 状态              |
+| created\_at          | TIMESTAMP    | DEFAULT NOW()        | 创建时间            |
+| updated\_at          | TIMESTAMP    | DEFAULT NOW()        | 更新时间            |
 
-#### 4.1.13 rag_documents RAG 文档表
+#### 4.1.13 rag\_documents RAG 文档表
 
-| 字段名 | 数据类型 | 约束 | 描述 |
-|--------|----------|------|------|
-| id | UUID | PRIMARY KEY | 文档 ID |
-| dataset_id | UUID | REFERENCES rag_datasets(id) | 数据集 ID |
-| file_name | VARCHAR(255) | NOT NULL | 文件名 |
-| file_url | VARCHAR(500) | NOT NULL | 文件存储 URL |
-| file_type | VARCHAR(20) | NOT NULL | 文件类型 (PDF/DOCX/TXT/MD) |
-| ocr_status | VARCHAR(20) | DEFAULT 'UPLOADED' | OCR 状态 |
-| embedding_status | VARCHAR(20) | DEFAULT 'PENDING' | 向量化状态 |
-| word_count | INTEGER | | 字数统计 |
-| created_at | TIMESTAMP | DEFAULT NOW() | 创建时间 |
-| updated_at | TIMESTAMP | DEFAULT NOW() | 更新时间 |
+| 字段名               | 数据类型         | 约束                           | 描述                     |
+| ----------------- | ------------ | ---------------------------- | ---------------------- |
+| id                | UUID         | PRIMARY KEY                  | 文档 ID                  |
+| dataset\_id       | UUID         | REFERENCES rag\_datasets(id) | 数据集 ID                 |
+| file\_name        | VARCHAR(255) | NOT NULL                     | 文件名                    |
+| file\_url         | VARCHAR(500) | NOT NULL                     | 文件存储 URL               |
+| file\_type        | VARCHAR(20)  | NOT NULL                     | 文件类型 (PDF/DOCX/TXT/MD) |
+| ocr\_status       | VARCHAR(20)  | DEFAULT 'UPLOADED'           | OCR 状态                 |
+| embedding\_status | VARCHAR(20)  | DEFAULT 'PENDING'            | 向量化状态                  |
+| word\_count       | INTEGER      | <br />                       | 字数统计                   |
+| created\_at       | TIMESTAMP    | DEFAULT NOW()                | 创建时间                   |
+| updated\_at       | TIMESTAMP    | DEFAULT NOW()                | 更新时间                   |
 
-#### 4.1.14 rag_document_units RAG 文档单元表
+#### 4.1.14 rag\_document\_units RAG 文档单元表
 
-| 字段名 | 数据类型 | 约束 | 描述 |
-|--------|----------|------|------|
-| id | UUID | PRIMARY KEY | 文档单元 ID |
-| document_id | UUID | REFERENCES rag_documents(id) | 文档 ID |
-| content | TEXT | NOT NULL | 文本内容 |
-| page_number | INTEGER | | 页码（PDF） |
-| embedding_vector | VECTOR(1536) | | 向量数据 |
-| created_at | TIMESTAMP | DEFAULT NOW() | 创建时间 |
+| 字段名               | 数据类型         | 约束                            | 描述      |
+| ----------------- | ------------ | ----------------------------- | ------- |
+| id                | UUID         | PRIMARY KEY                   | 文档单元 ID |
+| document\_id      | UUID         | REFERENCES rag\_documents(id) | 文档 ID   |
+| content           | TEXT         | NOT NULL                      | 文本内容    |
+| page\_number      | INTEGER      | <br />                        | 页码（PDF） |
+| embedding\_vector | VECTOR(1536) | <br />                        | 向量数据    |
+| created\_at       | TIMESTAMP    | DEFAULT NOW()                 | 创建时间    |
 
-#### 4.1.15 memory_items 记忆条目表
+#### 4.1.15 memory\_items 记忆条目表
 
-| 字段名 | 数据类型 | 约束 | 描述 |
-|--------|----------|------|------|
-| id | UUID | PRIMARY KEY | 记忆 ID |
-| user_id | UUID | REFERENCES users(id) | 用户 ID |
-| type | VARCHAR(20) | NOT NULL | 记忆类型 (PROFILE/TASK/FACT/EPISODIC) |
-| text | TEXT | NOT NULL | 记忆文本内容 |
-| data | JSONB | | 结构化数据 |
-| importance | DOUBLE | DEFAULT 0.0 | 重要性评分 (0.0-1.0) |
-| tags | TEXT[] | | 标签列表 |
-| source_session_id | UUID | | 来源会话 ID |
-| dedupe_hash | VARCHAR(64) | | 去重 SHA-256 哈希值 |
-| status | INTEGER | DEFAULT 1 | 状态 (1=active, 0=archived) |
-| created_at | TIMESTAMP | DEFAULT NOW() | 创建时间 |
-| updated_at | TIMESTAMP | DEFAULT NOW() | 更新时间 |
+| 字段名                 | 数据类型        | 约束                   | 描述                                |
+| ------------------- | ----------- | -------------------- | --------------------------------- |
+| id                  | UUID        | PRIMARY KEY          | 记忆 ID                             |
+| user\_id            | UUID        | REFERENCES users(id) | 用户 ID                             |
+| type                | VARCHAR(20) | NOT NULL             | 记忆类型 (PROFILE/TASK/FACT/EPISODIC) |
+| text                | TEXT        | NOT NULL             | 记忆文本内容                            |
+| data                | JSONB       | <br />               | 结构化数据                             |
+| importance          | DOUBLE      | DEFAULT 0.0          | 重要性评分 (0.0-1.0)                   |
+| tags                | TEXT\[]     | <br />               | 标签列表                              |
+| source\_session\_id | UUID        | <br />               | 来源会话 ID                           |
+| dedupe\_hash        | VARCHAR(64) | <br />               | 去重 SHA-256 哈希值                    |
+| status              | INTEGER     | DEFAULT 1            | 状态 (1=active, 0=archived)         |
+| created\_at         | TIMESTAMP   | DEFAULT NOW()        | 创建时间                              |
+| updated\_at         | TIMESTAMP   | DEFAULT NOW()        | 更新时间                              |
 
 #### 4.1.16 containers 容器表
 
-| 字段名 | 数据类型 | 约束 | 描述 |
-|--------|----------|------|------|
-| id | UUID | PRIMARY KEY | 容器 ID |
-| user_id | UUID | | 用户 ID（用户容器） |
-| type | VARCHAR(20) | NOT NULL | 类型 (USER/REVIEW) |
-| docker_container_id | VARCHAR(100) | | Docker 容器 ID |
-| ip_address | VARCHAR(50) | | 容器 IP 地址 |
-| external_port | INTEGER | | 外部端口 |
-| internal_port | INTEGER | DEFAULT 8080 | 内部端口 |
-| status | VARCHAR(20) | DEFAULT 'CREATING' | 状态 |
-| last_accessed_at | TIMESTAMP | | 最后访问时间 |
-| config | JSONB | | 容器配置 |
-| created_at | TIMESTAMP | DEFAULT NOW() | 创建时间 |
-| updated_at | TIMESTAMP | DEFAULT NOW() | 更新时间 |
+| 字段名                   | 数据类型         | 约束                 | 描述               |
+| --------------------- | ------------ | ------------------ | ---------------- |
+| id                    | UUID         | PRIMARY KEY        | 容器 ID            |
+| user\_id              | UUID         | <br />             | 用户 ID（用户容器）      |
+| type                  | VARCHAR(20)  | NOT NULL           | 类型 (USER/REVIEW) |
+| docker\_container\_id | VARCHAR(100) | <br />             | Docker 容器 ID     |
+| ip\_address           | VARCHAR(50)  | <br />             | 容器 IP 地址         |
+| external\_port        | INTEGER      | <br />             | 外部端口             |
+| internal\_port        | INTEGER      | DEFAULT 8080       | 内部端口             |
+| status                | VARCHAR(20)  | DEFAULT 'CREATING' | 状态               |
+| last\_accessed\_at    | TIMESTAMP    | <br />             | 最后访问时间           |
+| config                | JSONB        | <br />             | 容器配置             |
+| created\_at           | TIMESTAMP    | DEFAULT NOW()      | 创建时间             |
+| updated\_at           | TIMESTAMP    | DEFAULT NOW()      | 更新时间             |
 
 #### 4.1.17 accounts 账户表
 
-| 字段名 | 数据类型 | 约束 | 描述 |
-|--------|----------|------|------|
-| id | UUID | PRIMARY KEY | 账户 ID |
-| user_id | UUID | REFERENCES users(id) UNIQUE | 用户 ID |
-| balance | DECIMAL(10,4) | DEFAULT 0.00 | 账户余额 |
-| credit | DECIMAL(10,4) | DEFAULT 0.00 | 信用额度 |
-| total_consumed | DECIMAL(10,4) | DEFAULT 0.00 | 总消费金额 |
-| last_transaction_at | TIMESTAMP | | 最后交易时间 |
-| created_at | TIMESTAMP | DEFAULT NOW() | 创建时间 |
-| updated_at | TIMESTAMP | DEFAULT NOW() | 更新时间 |
+| 字段名                   | 数据类型          | 约束                          | 描述     |
+| --------------------- | ------------- | --------------------------- | ------ |
+| id                    | UUID          | PRIMARY KEY                 | 账户 ID  |
+| user\_id              | UUID          | REFERENCES users(id) UNIQUE | 用户 ID  |
+| balance               | DECIMAL(10,4) | DEFAULT 0.00                | 账户余额   |
+| credit                | DECIMAL(10,4) | DEFAULT 0.00                | 信用额度   |
+| total\_consumed       | DECIMAL(10,4) | DEFAULT 0.00                | 总消费金额  |
+| last\_transaction\_at | TIMESTAMP     | <br />                      | 最后交易时间 |
+| created\_at           | TIMESTAMP     | DEFAULT NOW()               | 创建时间   |
+| updated\_at           | TIMESTAMP     | DEFAULT NOW()               | 更新时间   |
 
 #### 4.1.18 orders 订单表
 
-| 字段名 | 数据类型 | 约束 | 描述 |
-|--------|----------|------|------|
-| id | UUID | PRIMARY KEY | 订单 ID |
-| order_no | VARCHAR(100) | UNIQUE NOT NULL | 订单号 |
-| user_id | UUID | REFERENCES users(id) | 用户 ID |
-| type | VARCHAR(20) | NOT NULL | 订单类型 (RECHARGE/PURCHASE/SUBSCRIPTION/RENEWAL) |
-| amount | DECIMAL(10,4) | NOT NULL | 金额 |
-| status | VARCHAR(20) | DEFAULT 'PENDING' | 状态 |
-| payment_platform | VARCHAR(20) | | 支付平台 (ALIPAY/WECHAT/STRIPE) |
-| payment_type | VARCHAR(20) | | 支付类型 (WEB/QR_CODE/MOBILE/H5/MINI_PROGRAM) |
-| paid_at | TIMESTAMP | | 支付时间 |
-| created_at | TIMESTAMP | DEFAULT NOW() | 创建时间 |
-| updated_at | TIMESTAMP | DEFAULT NOW() | 更新时间 |
+| 字段名               | 数据类型          | 约束                   | 描述                                            |
+| ----------------- | ------------- | -------------------- | --------------------------------------------- |
+| id                | UUID          | PRIMARY KEY          | 订单 ID                                         |
+| order\_no         | VARCHAR(100)  | UNIQUE NOT NULL      | 订单号                                           |
+| user\_id          | UUID          | REFERENCES users(id) | 用户 ID                                         |
+| type              | VARCHAR(20)   | NOT NULL             | 订单类型 (RECHARGE/PURCHASE/SUBSCRIPTION/RENEWAL) |
+| amount            | DECIMAL(10,4) | NOT NULL             | 金额                                            |
+| status            | VARCHAR(20)   | DEFAULT 'PENDING'    | 状态                                            |
+| payment\_platform | VARCHAR(20)   | <br />               | 支付平台 (ALIPAY/WECHAT/STRIPE)                   |
+| payment\_type     | VARCHAR(20)   | <br />               | 支付类型 (WEB/QR\_CODE/MOBILE/H5/MINI\_PROGRAM)   |
+| paid\_at          | TIMESTAMP     | <br />               | 支付时间                                          |
+| created\_at       | TIMESTAMP     | DEFAULT NOW()        | 创建时间                                          |
+| updated\_at       | TIMESTAMP     | DEFAULT NOW()        | 更新时间                                          |
 
 #### 4.1.19 sessions 会话表
 
-| 字段名 | 数据类型 | 约束 | 描述 |
-|--------|----------|------|------|
-| id | UUID | PRIMARY KEY | 会话 ID |
-| user_id | UUID | REFERENCES users(id) | 用户 ID |
-| agent_id | UUID | REFERENCES agents(id) | Agent ID |
-| title | VARCHAR(255) | | 会话标题 |
-| context_token_count | INTEGER | DEFAULT 0 | 上下文 Token 数 |
-| summary | TEXT | | 会话摘要 |
-| status | VARCHAR(20) | DEFAULT 'ACTIVE' | 状态 |
-| created_at | TIMESTAMP | DEFAULT NOW() | 创建时间 |
-| updated_at | TIMESTAMP | DEFAULT NOW() | 更新时间 |
+| 字段名                   | 数据类型         | 约束                    | 描述          |
+| --------------------- | ------------ | --------------------- | ----------- |
+| id                    | UUID         | PRIMARY KEY           | 会话 ID       |
+| user\_id              | UUID         | REFERENCES users(id)  | 用户 ID       |
+| agent\_id             | UUID         | REFERENCES agents(id) | Agent ID    |
+| title                 | VARCHAR(255) | <br />                | 会话标题        |
+| context\_token\_count | INTEGER      | DEFAULT 0             | 上下文 Token 数 |
+| summary               | TEXT         | <br />                | 会话摘要        |
+| status                | VARCHAR(20)  | DEFAULT 'ACTIVE'      | 状态          |
+| created\_at           | TIMESTAMP    | DEFAULT NOW()         | 创建时间        |
+| updated\_at           | TIMESTAMP    | DEFAULT NOW()         | 更新时间        |
 
 #### 4.1.20 messages 消息表
 
-| 字段名 | 数据类型 | 约束 | 描述 |
-|--------|----------|------|------|
-| id | UUID | PRIMARY KEY | 消息 ID |
-| session_id | UUID | REFERENCES sessions(id) | 会话 ID |
-| role | VARCHAR(20) | NOT NULL | 角色 (USER/SYSTEM/ASSISTANT) |
-| type | VARCHAR(20) | DEFAULT 'TEXT' | 消息类型 |
-| content | TEXT | | 消息内容 |
-| token_count | INTEGER | | Token 数量 |
-| provider_name | VARCHAR(100) | | 服务提供商 |
-| model_name | VARCHAR(100) | | 模型名称 |
-| files | JSONB | | 关联文件 URL 列表 |
-| metadata | JSONB | | 自定义元数据 |
-| created_at | TIMESTAMP | DEFAULT NOW() | 创建时间 |
+| 字段名            | 数据类型         | 约束                      | 描述                         |
+| -------------- | ------------ | ----------------------- | -------------------------- |
+| id             | UUID         | PRIMARY KEY             | 消息 ID                      |
+| session\_id    | UUID         | REFERENCES sessions(id) | 会话 ID                      |
+| role           | VARCHAR(20)  | NOT NULL                | 角色 (USER/SYSTEM/ASSISTANT) |
+| type           | VARCHAR(20)  | DEFAULT 'TEXT'          | 消息类型                       |
+| content        | TEXT         | <br />                  | 消息内容                       |
+| token\_count   | INTEGER      | <br />                  | Token 数量                   |
+| provider\_name | VARCHAR(100) | <br />                  | 服务提供商                      |
+| model\_name    | VARCHAR(100) | <br />                  | 模型名称                       |
+| files          | JSONB        | <br />                  | 关联文件 URL 列表                |
+| metadata       | JSONB        | <br />                  | 自定义元数据                     |
+| created\_at    | TIMESTAMP    | DEFAULT NOW()           | 创建时间                       |
 
-#### 4.1.21 scheduled_tasks 定时任务表
+#### 4.1.21 scheduled\_tasks 定时任务表
 
-| 字段名 | 数据类型 | 约束 | 描述 |
-|--------|----------|------|------|
-| id | UUID | PRIMARY KEY | 任务 ID |
-| agent_id | UUID | REFERENCES agents(id) | Agent ID |
-| name | VARCHAR(100) | NOT NULL | 任务名称 |
-| cron_expression | VARCHAR(100) | NOT NULL | Cron 表达式 |
-| config | JSONB | | 任务配置 |
-| status | VARCHAR(20) | DEFAULT 'ACTIVE' | 状态 |
-| last_execution_at | TIMESTAMP | | 最后执行时间 |
-| next_execution_at | TIMESTAMP | | 下次执行时间 |
-| created_at | TIMESTAMP | DEFAULT NOW() | 创建时间 |
-| updated_at | TIMESTAMP | DEFAULT NOW() | 更新时间 |
+| 字段名                 | 数据类型         | 约束                    | 描述       |
+| ------------------- | ------------ | --------------------- | -------- |
+| id                  | UUID         | PRIMARY KEY           | 任务 ID    |
+| agent\_id           | UUID         | REFERENCES agents(id) | Agent ID |
+| name                | VARCHAR(100) | NOT NULL              | 任务名称     |
+| cron\_expression    | VARCHAR(100) | NOT NULL              | Cron 表达式 |
+| config              | JSONB        | <br />                | 任务配置     |
+| status              | VARCHAR(20)  | DEFAULT 'ACTIVE'      | 状态       |
+| last\_execution\_at | TIMESTAMP    | <br />                | 最后执行时间   |
+| next\_execution\_at | TIMESTAMP    | <br />                | 下次执行时间   |
+| created\_at         | TIMESTAMP    | DEFAULT NOW()         | 创建时间     |
+| updated\_at         | TIMESTAMP    | DEFAULT NOW()         | 更新时间     |
 
 ## 5. API 设计
 
 ### 5.1 认证与用户 API
 
 #### 认证 API
-| 端点 | 方法 | 功能 | 请求体 | 响应 |
-|------|------|------|--------|------|
-| /api/auth/login | POST | 用户登录 | `{"account": "...", "password": "..."}` | `{access_token, token_type}` |
-| /api/auth/register | POST | 用户注册 | `{"email": "...", "password": "..."}` | `{user_id, email}` |
-| /api/auth/github | GET | 获取 GitHub 登录 URL | - | `{authorize_url}` |
-| /api/auth/github/callback | GET | GitHub 回调 | `code` | `{access_token}` |
-| /api/auth/password/reset | POST | 密码重置 | `{"email": "...", "captcha": "...", "newPassword": "..."}` | - |
-| /api/auth/me | GET | 获取当前用户 | - | `UserDTO` |
+
+| 端点                        | 方法   | 功能               | 请求体                                                        | 响应                           |
+| ------------------------- | ---- | ---------------- | ---------------------------------------------------------- | ---------------------------- |
+| /api/auth/login           | POST | 用户登录             | `{"account": "...", "password": "..."}`                    | `{access_token, token_type}` |
+| /api/auth/register        | POST | 用户注册             | `{"email": "...", "password": "..."}`                      | `{user_id, email}`           |
+| /api/auth/github          | GET  | 获取 GitHub 登录 URL | -                                                          | `{authorize_url}`            |
+| /api/auth/github/callback | GET  | GitHub 回调        | `code`                                                     | `{access_token}`             |
+| /api/auth/password/reset  | POST | 密码重置             | `{"email": "...", "captcha": "...", "newPassword": "..."}` | -                            |
+| /api/auth/me              | GET  | 获取当前用户           | -                                                          | `UserDTO`                    |
 
 #### 用户管理 API
-| 端点 | 方法 | 功能 | 说明 |
-|------|------|------|------|
-| GET /api/users/profile | GET | 获取用户资料 | 返回完整用户信息 |
-| PUT /api/users/profile | PUT | 更新用户资料 | 更新昵称、头像等 |
-| PUT /api/users/password | PUT | 修改密码 | 需要验证当前密码 |
+
+| 端点                      | 方法  | 功能     | 说明         |
+| ----------------------- | --- | ------ | ---------- |
+| GET /api/users/profile  | GET | 获取用户资料 | 返回完整用户信息   |
+| PUT /api/users/profile  | PUT | 更新用户资料 | 更新昵称、头像等   |
+| PUT /api/users/password | PUT | 修改密码   | 需要验证当前密码   |
 | GET /api/users/settings | GET | 获取用户设置 | 默认模型、降级配置等 |
-| PUT /api/users/settings | PUT | 更新用户设置 | 更新个性化配置 |
+| PUT /api/users/settings | PUT | 更新用户设置 | 更新个性化配置    |
 
 ### 5.2 LLM 管理 API
 
-| 端点 | 方法 | 功能 | 说明 |
-|------|------|------|------|
-| GET /api/llm/providers | GET | 获取服务商列表 | 支持按类型筛选（官方/自定义） |
-| POST /api/llm/providers | POST | 创建服务商 | 需要验证协议类型 |
-| GET /api/llm/providers/{id} | GET | 获取服务商详情 | 包含模型列表和 API Key 掩码 |
-| PUT /api/llm/providers/{id} | PUT | 更新服务商 | 更新配置信息 |
-| DELETE /api/llm/providers/{id} | DELETE | 删除服务商 | 级联删除下属模型 |
-| GET /api/llm/models | GET | 获取模型列表 | 按服务商类型和模型类型筛选 |
-| POST /api/llm/models | POST | 创建模型 | 指定所属服务商 |
-| PUT /api/llm/models/{id} | PUT | 更新模型 | 更新模型配置 |
-| DELETE /api/llm/models/{id} | DELETE | 删除模型 | 支持批量删除 |
-| GET /api/llm/protocols | GET | 获取支持的协议 | 返回 ProviderProtocol 列表 |
+| 端点                             | 方法     | 功能      | 说明                     |
+| ------------------------------ | ------ | ------- | ---------------------- |
+| GET /api/llm/providers         | GET    | 获取服务商列表 | 支持按类型筛选（官方/自定义）        |
+| POST /api/llm/providers        | POST   | 创建服务商   | 需要验证协议类型               |
+| GET /api/llm/providers/{id}    | GET    | 获取服务商详情 | 包含模型列表和 API Key 掩码     |
+| PUT /api/llm/providers/{id}    | PUT    | 更新服务商   | 更新配置信息                 |
+| DELETE /api/llm/providers/{id} | DELETE | 删除服务商   | 级联删除下属模型               |
+| GET /api/llm/models            | GET    | 获取模型列表  | 按服务商类型和模型类型筛选          |
+| POST /api/llm/models           | POST   | 创建模型    | 指定所属服务商                |
+| PUT /api/llm/models/{id}       | PUT    | 更新模型    | 更新模型配置                 |
+| DELETE /api/llm/models/{id}    | DELETE | 删除模型    | 支持批量删除                 |
+| GET /api/llm/protocols         | GET    | 获取支持的协议 | 返回 ProviderProtocol 列表 |
 
 ### 5.3 Agent 管理 API
 
-| 端点 | 方法 | 功能 | 说明 |
-|------|------|------|------|
-| GET /api/agents | GET | 获取 Agent 列表 | 支持名称、状态过滤 |
-| POST /api/agents | POST | 创建 Agent | 自动创建默认 LLM 配置 |
-| GET /api/agents/{id} | GET | 获取 Agent 详情 | 需权限验证 |
-| PUT /api/agents/{id} | PUT | 更新 Agent | 支持基本信息和配置更新 |
-| DELETE /api/agents/{id} | DELETE | 删除 Agent | 级联删除版本、Widget 等 |
-| POST /api/agents/{id}/publish | POST | 发布新版本 | 创建版本快照并提交审核 |
-| GET /api/agents/{id}/versions | GET | 获取版本历史 | 查询所有版本或已发布版本 |
-| GET /api/agents/market | GET | 获取已上架 Agent | 市场上公开的 Agent 列表 |
-| POST /api/agents/widget | POST | 创建 Widget | 为 Agent 创建嵌入配置 |
-| GET /api/agents/workspace | GET | 获取工作区 Agent | 用户工作区中的 Agent 列表 |
-| PUT /api/agents/workspace/{id} | PUT | 更新工作区配置 | 更新 LLM 模型参数 |
-| POST /api/agents/prompt/generate | POST | 生成系统提示词 | AI 辅助生成提示词 |
+| 端点                               | 方法     | 功能          | 说明               |
+| -------------------------------- | ------ | ----------- | ---------------- |
+| GET /api/agents                  | GET    | 获取 Agent 列表 | 支持名称、状态过滤        |
+| POST /api/agents                 | POST   | 创建 Agent    | 自动创建默认 LLM 配置    |
+| GET /api/agents/{id}             | GET    | 获取 Agent 详情 | 需权限验证            |
+| PUT /api/agents/{id}             | PUT    | 更新 Agent    | 支持基本信息和配置更新      |
+| DELETE /api/agents/{id}          | DELETE | 删除 Agent    | 级联删除版本、Widget 等  |
+| POST /api/agents/{id}/publish    | POST   | 发布新版本       | 创建版本快照并提交审核      |
+| GET /api/agents/{id}/versions    | GET    | 获取版本历史      | 查询所有版本或已发布版本     |
+| GET /api/agents/market           | GET    | 获取已上架 Agent | 市场上公开的 Agent 列表  |
+| POST /api/agents/widget          | POST   | 创建 Widget   | 为 Agent 创建嵌入配置   |
+| GET /api/agents/workspace        | GET    | 获取工作区 Agent | 用户工作区中的 Agent 列表 |
+| PUT /api/agents/workspace/{id}   | PUT    | 更新工作区配置     | 更新 LLM 模型参数      |
+| POST /api/agents/prompt/generate | POST   | 生成系统提示词     | AI 辅助生成提示词       |
 
 ### 5.4 工具集成 API
 
-| 端点 | 方法 | 功能 | 说明 |
-|------|------|------|------|
-| GET /api/tools/market | GET | 获取工具市场 | 已发布的工具列表 |
-| POST /api/tools | POST | 上传工具 | 提交 GitHub 仓库信息 |
-| PUT /api/tools/{id} | PUT | 更新工具 | 重新验证和部署 |
-| DELETE /api/tools/{id} | DELETE | 删除工具 | 仅创建者可删除 |
-| POST /api/tools/{id}/install | POST | 安装工具 | 安装到用户空间 |
-| POST /api/tools/{id}/uninstall | POST | 卸载工具 | 从用户空间移除 |
-| GET /api/tools/my | GET | 我的工具列表 | 已安装的工具列表 |
-| GET /api/tools/review | GET | 待审核工具列表 | 管理员审核入口 |
-| POST /api/tools/{id}/review | POST | 审核工具 | 通过/拒绝审核 |
-| POST /api/tools/{id}/release | POST | 发布版本 | 发布到工具市场 |
+| 端点                             | 方法     | 功能      | 说明             |
+| ------------------------------ | ------ | ------- | -------------- |
+| GET /api/tools/market          | GET    | 获取工具市场  | 已发布的工具列表       |
+| POST /api/tools                | POST   | 上传工具    | 提交 GitHub 仓库信息 |
+| PUT /api/tools/{id}            | PUT    | 更新工具    | 重新验证和部署        |
+| DELETE /api/tools/{id}         | DELETE | 删除工具    | 仅创建者可删除        |
+| POST /api/tools/{id}/install   | POST   | 安装工具    | 安装到用户空间        |
+| POST /api/tools/{id}/uninstall | POST   | 卸载工具    | 从用户空间移除        |
+| GET /api/tools/my              | GET    | 我的工具列表  | 已安装的工具列表       |
+| GET /api/tools/review          | GET    | 待审核工具列表 | 管理员审核入口        |
+| POST /api/tools/{id}/review    | POST   | 审核工具    | 通过/拒绝审核        |
+| POST /api/tools/{id}/release   | POST   | 发布版本    | 发布到工具市场        |
 
 ### 5.5 RAG 管理 API
 
-| 端点 | 方法 | 功能 | 说明 |
-|------|------|------|------|
-| GET /api/rag/datasets | GET | 获取数据集列表 | 支持分页和筛选 |
-| POST /api/rag/datasets | POST | 创建数据集 | 创建 RAG 数据集 |
-| GET /api/rag/datasets/{id} | GET | 获取数据集详情 | 包含统计信息 |
-| PUT /api/rag/datasets/{id} | PUT | 更新数据集 | 更新配置信息 |
-| DELETE /api/rag/datasets/{id} | DELETE | 删除数据集 | 级联删除文档 |
-| POST /api/rag/datasets/{id}/files | POST | 上传文档 | 批量上传 PDF/Word/TXT/MD |
-| GET /api/rag/datasets/{id}/documents | GET | 获取文档列表 | 文档列表及处理状态 |
-| PUT /api/rag/documents/{id} | PUT | 编辑文档单元 | 手动编辑内容 |
-| POST /api/rag/documents/{id}/re-embed | POST | 重新向量化 | 重新生成向量 |
-| POST /api/rag/search | POST | 检索文档 | 支持向量/关键词/混合检索 |
-| POST /api/rag/chat | POST | RAG 流式对话 | 基于检索结果的对话 |
-| POST /api/rag/datasets/{id}/versions | POST | 创建版本 | 创建数据集版本 |
-| POST /api/rag/datasets/{id}/publish | POST | 发布版本 | 提交发布申请 |
-| GET /api/rag/market | GET | RAG 市场 | 已发布的 RAG 版本 |
+| 端点                                    | 方法     | 功能       | 说明                   |
+| ------------------------------------- | ------ | -------- | -------------------- |
+| GET /api/rag/datasets                 | GET    | 获取数据集列表  | 支持分页和筛选              |
+| POST /api/rag/datasets                | POST   | 创建数据集    | 创建 RAG 数据集           |
+| GET /api/rag/datasets/{id}            | GET    | 获取数据集详情  | 包含统计信息               |
+| PUT /api/rag/datasets/{id}            | PUT    | 更新数据集    | 更新配置信息               |
+| DELETE /api/rag/datasets/{id}         | DELETE | 删除数据集    | 级联删除文档               |
+| POST /api/rag/datasets/{id}/files     | POST   | 上传文档     | 批量上传 PDF/Word/TXT/MD |
+| GET /api/rag/datasets/{id}/documents  | GET    | 获取文档列表   | 文档列表及处理状态            |
+| PUT /api/rag/documents/{id}           | PUT    | 编辑文档单元   | 手动编辑内容               |
+| POST /api/rag/documents/{id}/re-embed | POST   | 重新向量化    | 重新生成向量               |
+| POST /api/rag/search                  | POST   | 检索文档     | 支持向量/关键词/混合检索        |
+| POST /api/rag/chat                    | POST   | RAG 流式对话 | 基于检索结果的对话            |
+| POST /api/rag/datasets/{id}/versions  | POST   | 创建版本     | 创建数据集版本              |
+| POST /api/rag/datasets/{id}/publish   | POST   | 发布版本     | 提交发布申请               |
+| GET /api/rag/market                   | GET    | RAG 市场   | 已发布的 RAG 版本          |
 
 ### 5.6 对话管理 API
 
-| 端点 | 方法 | 功能 | 说明 |
-|------|------|------|------|
-| GET /api/conversations | GET | 获取会话列表 | 分页查询 |
-| POST /api/conversations | POST | 创建会话 | 指定 Agent |
-| DELETE /api/conversations | DELETE | 批量删除会话 | 支持多个会话 ID |
-| GET /api/conversations/{id} | GET | 获取会话详情 | 包含消息列表 |
-| GET /api/conversations/{id}/messages | GET | 获取历史消息 | 分页加载 |
-| POST /api/conversations/{id}/chat | POST | 发送消息 | 支持文本和文件 |
-| POST /api/conversations/{id}/stream | POST | 流式对话 | SSE 实时响应 |
-| POST /api/conversations/{id}/interrupt | POST | 中断对话 | 停止当前处理 |
-| GET /api/memory/list | GET | 获取记忆列表 | 分页查询，支持类型筛选 |
-| POST /api/memory/create | POST | 手动创建记忆 | 添加记忆条目 |
-| DELETE /api/memory/delete/{id} | DELETE | 删除记忆 | 归档记忆 |
+| 端点                                     | 方法     | 功能     | 说明          |
+| -------------------------------------- | ------ | ------ | ----------- |
+| GET /api/conversations                 | GET    | 获取会话列表 | 分页查询        |
+| POST /api/conversations                | POST   | 创建会话   | 指定 Agent    |
+| DELETE /api/conversations              | DELETE | 批量删除会话 | 支持多个会话 ID   |
+| GET /api/conversations/{id}            | GET    | 获取会话详情 | 包含消息列表      |
+| GET /api/conversations/{id}/messages   | GET    | 获取历史消息 | 分页加载        |
+| POST /api/conversations/{id}/chat      | POST   | 发送消息   | 支持文本和文件     |
+| POST /api/conversations/{id}/stream    | POST   | 流式对话   | SSE 实时响应    |
+| POST /api/conversations/{id}/interrupt | POST   | 中断对话   | 停止当前处理      |
+| GET /api/memory/list                   | GET    | 获取记忆列表 | 分页查询，支持类型筛选 |
+| POST /api/memory/create                | POST   | 手动创建记忆 | 添加记忆条目      |
+| DELETE /api/memory/delete/{id}         | DELETE | 删除记忆   | 归档记忆        |
 
 ### 5.7 容器管理 API
 
-| 端点 | 方法 | 功能 | 说明 |
-|------|------|------|------|
-| GET /api/containers/user | GET | 获取用户容器 | 自动处理创建和恢复 |
-| POST /api/containers/user | POST | 创建用户容器 | 手动触发创建 |
-| GET /api/containers/user/health | GET | 健康检查 | 全面健康检查 |
-| GET /admin/containers | GET | 容器列表查询 | 管理员分页查询 |
-| GET /admin/containers/statistics | GET | 容器统计 | 按状态和类型统计 |
-| POST /admin/containers/review | POST | 创建审核容器 | 管理员专用 |
-| POST /admin/containers/{id}/start | POST | 启动容器 | 管理员操作 |
-| POST /admin/containers/{id}/stop | POST | 停止容器 | 管理员操作 |
-| DELETE /admin/containers/{id} | DELETE | 删除容器 | 管理员操作 |
+| 端点                                | 方法     | 功能     | 说明        |
+| --------------------------------- | ------ | ------ | --------- |
+| GET /api/containers/user          | GET    | 获取用户容器 | 自动处理创建和恢复 |
+| POST /api/containers/user         | POST   | 创建用户容器 | 手动触发创建    |
+| GET /api/containers/user/health   | GET    | 健康检查   | 全面健康检查    |
+| GET /admin/containers             | GET    | 容器列表查询 | 管理员分页查询   |
+| GET /admin/containers/statistics  | GET    | 容器统计   | 按状态和类型统计  |
+| POST /admin/containers/review     | POST   | 创建审核容器 | 管理员专用     |
+| POST /admin/containers/{id}/start | POST   | 启动容器   | 管理员操作     |
+| POST /admin/containers/{id}/stop  | POST   | 停止容器   | 管理员操作     |
+| DELETE /admin/containers/{id}     | DELETE | 删除容器   | 管理员操作     |
 
 ### 5.8 计费管理 API
 
-| 端点 | 方法 | 功能 | 说明 |
-|------|------|------|------|
-| GET /api/billing/account | GET | 获取账户信息 | 余额、信用额度、总消费 |
-| GET /api/billing/orders | GET | 订单列表 | 分页查询，支持筛选 |
-| GET /api/billing/orders/{id} | GET | 订单详情 | 订单详细信息 |
-| POST /api/billing/recharge | POST | 创建充值订单 | 指定金额和支付方式 |
-| GET /api/billing/payment/{orderId} | GET | 获取支付链接 | 返回支付 URL 或二维码 |
-| GET /api/billing/usage | GET | 用量统计 | Token 使用量、消费明细 |
+| 端点                                 | 方法   | 功能     | 说明             |
+| ---------------------------------- | ---- | ------ | -------------- |
+| GET /api/billing/account           | GET  | 获取账户信息 | 余额、信用额度、总消费    |
+| GET /api/billing/orders            | GET  | 订单列表   | 分页查询，支持筛选      |
+| GET /api/billing/orders/{id}       | GET  | 订单详情   | 订单详细信息         |
+| POST /api/billing/recharge         | POST | 创建充值订单 | 指定金额和支付方式      |
+| GET /api/billing/payment/{orderId} | GET  | 获取支付链接 | 返回支付 URL 或二维码  |
+| GET /api/billing/usage             | GET  | 用量统计   | Token 使用量、消费明细 |
 
 ### 5.9 定时任务 API
 
-| 端点 | 方法 | 功能 | 说明 |
-|------|------|------|------|
-| GET /api/scheduled-tasks | GET | 获取任务列表 | 支持 Agent ID 筛选 |
-| POST /api/scheduled-tasks | POST | 创建任务 | 指定 cron 表达式 |
-| PUT /api/scheduled-tasks/{id} | PUT | 更新任务 | 更新配置 |
-| DELETE /api/scheduled-tasks/{id} | DELETE | 删除任务 | 删除定时任务 |
-| POST /api/scheduled-tasks/{id}/trigger | POST | 手动触发 | 立即执行一次 |
+| 端点                                     | 方法     | 功能     | 说明             |
+| -------------------------------------- | ------ | ------ | -------------- |
+| GET /api/scheduled-tasks               | GET    | 获取任务列表 | 支持 Agent ID 筛选 |
+| POST /api/scheduled-tasks              | POST   | 创建任务   | 指定 cron 表达式    |
+| PUT /api/scheduled-tasks/{id}          | PUT    | 更新任务   | 更新配置           |
+| DELETE /api/scheduled-tasks/{id}       | DELETE | 删除任务   | 删除定时任务         |
+| POST /api/scheduled-tasks/{id}/trigger | POST   | 手动触发   | 立即执行一次         |
 
 ## 6. 部署架构
 
@@ -1010,31 +1012,35 @@ spec:
 
 ### 6.3 环境配置
 
-| 环境 | 用途 | 特点 |
-|------|------|------|
-| **开发环境** | 本地开发 | 代码热重载、详细日志、H2 内存数据库、Mock 外部服务 |
-| **测试环境** | 集成测试 | 模拟生产配置、完整依赖服务、自动化测试脚本 |
-| **预发布环境** | 上线前验证 | 与生产环境一致、真实数据脱敏、性能压测 |
-| **生产环境** | 正式服务 | 高可用配置、性能优化、安全加固、监控告警 |
+| 环境        | 用途    | 特点                            |
+| --------- | ----- | ----------------------------- |
+| **开发环境**  | 本地开发  | 代码热重载、详细日志、H2 内存数据库、Mock 外部服务 |
+| **测试环境**  | 集成测试  | 模拟生产配置、完整依赖服务、自动化测试脚本         |
+| **预发布环境** | 上线前验证 | 与生产环境一致、真实数据脱敏、性能压测           |
+| **生产环境**  | 正式服务  | 高可用配置、性能优化、安全加固、监控告警          |
 
 ### 6.4 扩展性设计
 
 #### 水平扩展
+
 - **无状态服务**：后端 API 服务无状态，支持快速扩容
 - **负载均衡**：Nginx/Kubernetes Service 负载均衡
 - **会话共享**：Redis 集中存储会话，支持多实例
 
 #### 数据库扩展
+
 - **读写分离**：主从复制，读操作分流到从库
 - **数据分片**：按用户 ID 分片，支持海量数据
 - **向量数据库**：PGVector 独立部署，支持 GPU 加速
 
 #### 缓存策略
+
 - **多级缓存**：本地缓存 (Caffeine) + 分布式缓存 (Redis)
 - **热点数据**：高频访问数据预热到缓存
 - **缓存更新**：基于事件的缓存失效机制
 
 #### 消息队列
+
 - **异步解耦**：耗时操作异步处理
 - **削峰填谷**：高峰期请求排队处理
 - **事件驱动**：领域事件发布订阅模式
@@ -1044,6 +1050,7 @@ spec:
 ### 7.1 认证与授权
 
 #### 身份认证
+
 - **JWT Token 认证**：
   - Access Token（短期，15 分钟）
   - Refresh Token（长期，7 天）
@@ -1057,12 +1064,13 @@ spec:
   - 支持 Google、微信（扩展）
 
 #### 权限控制
+
 - **RBAC 角色访问控制**：
   - 普通用户（USER）：基础功能使用
   - 管理员（ADMIN）：系统管理、审核权限
-  - 超级管理员（SUPER_ADMIN）：所有权限
+  - 超级管理员（SUPER\_ADMIN）：所有权限
 - **数据权限隔离**：
-  - 用户级数据隔离（user_id 过滤）
+  - 用户级数据隔离（user\_id 过滤）
   - 官方资源全局可见
   - 审核资源仅管理员可见
 - **API 权限校验**：
@@ -1073,6 +1081,7 @@ spec:
 ### 7.2 数据安全
 
 #### 加密存储
+
 - **密码加密**：BCrypt 强哈希（cost factor=10）
 - **敏感信息加密**：
   - API Key 使用 AES-256 加密存储
@@ -1084,6 +1093,7 @@ spec:
   - 数据库连接 SSL
 
 #### 数据保护
+
 - **SQL 注入防护**：
   - MyBatis 参数化查询
   - 禁止动态 SQL 拼接
@@ -1098,6 +1108,7 @@ spec:
   - Referer 检查
 
 #### 隐私保护
+
 - **数据脱敏**：
   - 前端展示脱敏（手机号、邮箱）
   - 日志脱敏处理
@@ -1110,6 +1121,7 @@ spec:
 ### 7.3 网络安全
 
 #### 边界安全
+
 - **API 网关**：
   - 统一入口，集中鉴权
   - IP 白名单/黑名单
@@ -1120,6 +1132,7 @@ spec:
   - 安全组隔离
 
 #### 访问控制
+
 - **限流熔断**：
   - 单用户 QPS 限制
   - 单 IP 请求频率限制
@@ -1130,6 +1143,7 @@ spec:
   - 负载均衡分散攻击
 
 #### 容器安全
+
 - **容器隔离**：
   - Docker 命名空间隔离
   - 网络策略（NetworkPolicy）
@@ -1146,6 +1160,7 @@ spec:
 ### 7.4 审计与合规
 
 #### 审计日志
+
 - **操作审计**：
   - 用户关键操作记录
   - 管理员操作审计
@@ -1156,6 +1171,7 @@ spec:
   - 配置修改日志
 
 #### 合规性
+
 - **数据保留策略**：
   - 日志保留 180 天
   - 审计日志永久保存
@@ -1170,6 +1186,7 @@ spec:
 ### 8.1 监控体系
 
 #### 应用监控（Application Monitoring）
+
 - **业务指标**：
   - API 请求量、响应时间（P50/P90/P99）
   - 错误率和失败请求数
@@ -1188,6 +1205,7 @@ spec:
   - LLM API 调用成功率
 
 #### 系统监控（System Monitoring）
+
 - **节点资源**：
   - CPU 使用率和负载
   - 内存使用率
@@ -1205,6 +1223,7 @@ spec:
   - HPA 自动扩缩容
 
 #### 数据库监控
+
 - **PostgreSQL**：
   - QPS/TPS
   - 慢查询统计
@@ -1222,6 +1241,7 @@ spec:
   - 持久化状态
 
 #### 消息队列监控
+
 - **RabbitMQ**：
   - 队列深度和消息积压
   - 生产者和消费者速率
@@ -1233,6 +1253,7 @@ spec:
   - 事件失败重试次数
 
 #### 链路追踪（Distributed Tracing）
+
 - **调用链追踪**：
   - 全链路 TraceID 传递
   - Span 耗时分析
@@ -1247,6 +1268,7 @@ spec:
 ### 8.2 日志系统
 
 #### 日志分级
+
 ```java
 ERROR  - 系统错误，需要立即处理（如数据库连接失败）
 WARN   - 警告信息，可能影响功能（如 API 调用超时）
@@ -1256,6 +1278,7 @@ TRACE  - 详细追踪信息，问题排查使用
 ```
 
 #### 日志分类
+
 - **应用日志**：
   - 业务日志：用户操作、订单流转、状态变更
   - 访问日志：API 请求、响应时间、状态码
@@ -1270,6 +1293,7 @@ TRACE  - 详细追踪信息，问题排查使用
   - 数据访问审计：敏感数据查询、导出
 
 #### 日志收集与分析
+
 - **收集方案**：
   - Filebeat 收集文件日志
   - Fluentd 统一日志管道
@@ -1284,6 +1308,7 @@ TRACE  - 详细追踪信息，问题排查使用
   - 告警规则配置
 
 #### 日志规范
+
 ```java
 // 推荐格式
 {
@@ -1301,6 +1326,7 @@ TRACE  - 详细追踪信息，问题排查使用
 ### 8.3 告警系统
 
 #### 告警级别
+
 - **P0 - 紧急**：系统不可用，需立即响应（5 分钟内）
   - 核心服务宕机
   - 数据库不可用
@@ -1319,12 +1345,14 @@ TRACE  - 详细追踪信息，问题排查使用
   - 配置变更通知
 
 #### 告警渠道
+
 - **即时通知**：企业微信、钉钉、Slack
 - **电话短信**：P0/P1 级别电话通知
 - **邮件通知**：日报、周报、汇总告警
 - **值班轮岗**：On-call 排班制度
 
 #### 告警收敛
+
 - **告警合并**：相同根因告警合并
 - **静默期**：避免重复告警（5-15 分钟）
 - **依赖抑制**：下游故障不触发上游告警
@@ -1335,8 +1363,9 @@ TRACE  - 详细追踪信息，问题排查使用
 ### 9.1 后端性能优化
 
 #### 数据库优化
+
 - **索引优化**：
-  - 为高频查询字段创建索引（user_id, status, created_at）
+  - 为高频查询字段创建索引（user\_id, status, created\_at）
   - 向量数据库索引（HNSW、IVFFLAT）
   - 复合索引优化多条件查询
   - 定期分析索引使用情况
@@ -1351,6 +1380,7 @@ TRACE  - 详细追踪信息，问题排查使用
   - 连接超时和空闲回收
 
 #### 缓存策略
+
 - **多级缓存架构**：
   ```
   L1 Cache (Caffeine) - 本地内存缓存，纳秒级访问
@@ -1372,6 +1402,7 @@ TRACE  - 详细追踪信息，问题排查使用
   - 定时刷新热点数据
 
 #### 异步处理
+
 - **线程池优化**：
   - 核心线程池（CPU 密集型）
   - IO 线程池（IO 密集型）
@@ -1389,6 +1420,7 @@ TRACE  - 详细追踪信息，问题排查使用
   - 批量操作队列
 
 #### 批处理优化
+
 - **批量操作**：
   - 批量插入消息（MyBatis Batch）
   - 批量删除会话
@@ -1401,6 +1433,7 @@ TRACE  - 详细追踪信息，问题排查使用
 ### 9.2 前端性能优化
 
 #### 加载性能
+
 - **代码分割**：
   - 路由级别懒加载
   - 组件级别动态导入
@@ -1416,6 +1449,7 @@ TRACE  - 详细追踪信息，问题排查使用
   - 关键资源提前加载
 
 #### 渲染性能
+
 - **React 优化**：
   - React.memo 避免不必要重渲染
   - useMemo/useCallback 缓存
@@ -1427,6 +1461,7 @@ TRACE  - 详细追踪信息，问题排查使用
   - 状态选择器优化
 
 #### 网络优化
+
 - **HTTP 优化**：
   - HTTP/2 多路复用
   - Gzip/Brotli 压缩
@@ -1443,16 +1478,18 @@ TRACE  - 详细追踪信息，问题排查使用
 ### 9.3 LLM 调用优化
 
 #### Token 优化
+
 - **上下文管理**：
   - 滑动窗口保留最近对话
   - 摘要压缩历史消息
-  - Token 溢出策略（NONE/SLIDING_WINDOW/SUMMARY）
+  - Token 溢出策略（NONE/SLIDING\_WINDOW/SUMMARY）
 - **Prompt 优化**：
   - Prompt 模板化
   - Few-shot 示例精选
   - 系统提示词精简
 
 #### 调用优化
+
 - **智能路由**：
   - 高可用网关选择最优实例
   - 会话亲和性减少切换
@@ -1463,6 +1500,7 @@ TRACE  - 详细追踪信息，问题排查使用
   - 相似查询复用
 
 #### 降级策略
+
 - **故障转移**：主模型失败自动切换备用模型
 - **降级链**：按优先级依次尝试
 - **限流保护**：超过阈值拒绝或排队
@@ -1470,6 +1508,7 @@ TRACE  - 详细追踪信息，问题排查使用
 ### 9.4 容器性能优化
 
 #### 资源优化
+
 - **CPU/Memory 限制**：
   - 防止单容器占用过多资源
   - OOM Killer 保护
@@ -1480,6 +1519,7 @@ TRACE  - 详细追踪信息，问题排查使用
   - 高峰期提前扩容
 
 #### 启动优化
+
 - **镜像优化**：
   - 多层镜像缓存
   - 减小镜像体积
@@ -1491,22 +1531,23 @@ TRACE  - 详细追踪信息，问题排查使用
 
 ### 9.5 性能指标目标
 
-| 指标 | 目标值 | 测量方式 |
-|------|--------|----------|
+| 指标         | 目标值     | 测量方式                 |
+| ---------- | ------- | -------------------- |
 | API P99 延迟 | < 500ms | Prometheus + Grafana |
-| 首 Token 时间 | < 3s | 链路追踪 |
-| 页面加载时间 | < 2s | Lighthouse |
-| 数据库查询 P95 | < 100ms | PG Stat Statements |
-| Redis 命中率 | > 90% | Redis INFO |
-| 容器启动时间 | < 30s | Docker Events |
-| 向量检索延迟 | < 500ms | 基准测试 |
-| 系统可用性 | > 99.9% | SLA 监控 |
+| 首 Token 时间 | < 3s    | 链路追踪                 |
+| 页面加载时间     | < 2s    | Lighthouse           |
+| 数据库查询 P95  | < 100ms | PG Stat Statements   |
+| Redis 命中率  | > 90%   | Redis INFO           |
+| 容器启动时间     | < 30s   | Docker Events        |
+| 向量检索延迟     | < 500ms | 基准测试                 |
+| 系统可用性      | > 99.9% | SLA 监控               |
 
 ## 10. 未来规划
 
 ### 10.1 短期规划（3-6 个月）
 
 #### 功能增强
+
 - **多语言支持**：
   - 前端国际化（i18n）支持中英文切换
   - Agent 多语言界面和响应
@@ -1521,6 +1562,7 @@ TRACE  - 详细追踪信息，问题排查使用
   - 语音交互支持（TTS/ASR）
 
 #### 技术升级
+
 - **性能优化**：
   - 向量检索 GPU 加速
   - 数据库读写分离
@@ -1533,6 +1575,7 @@ TRACE  - 详细追踪信息，问题排查使用
 ### 10.2 中期规划（6-12 个月）
 
 #### 生态建设
+
 - **工具市场繁荣**：
   - 吸引更多开发者上传工具
   - 建立工具质量评分体系
@@ -1547,6 +1590,7 @@ TRACE  - 详细追踪信息，问题排查使用
   - Agent 分润机制
 
 #### 架构演进
+
 - **微服务化**：
   - 核心服务拆分（用户、Agent、对话、计费独立部署）
   - Service Mesh（Istio）服务网格
@@ -1559,6 +1603,7 @@ TRACE  - 详细追踪信息，问题排查使用
 ### 10.3 长期愿景（1-2 年）
 
 #### 智能化升级
+
 - **AI 辅助开发**：
   - Agent 自动生成和调试
   - Prompt 自动优化
@@ -1573,6 +1618,7 @@ TRACE  - 详细追踪信息，问题排查使用
   - 知识库自动更新
 
 #### 平台开放
+
 - **Open API 生态**：
   - 完善的开发者文档
   - SDK 和 CLI 工具
@@ -1587,6 +1633,7 @@ TRACE  - 详细追踪信息，问题排查使用
   - 白标解决方案
 
 #### 全球化布局
+
 - **多区域部署**：
   - 全球多数据中心
   - 数据本地化合规
@@ -1600,12 +1647,14 @@ TRACE  - 详细追踪信息，问题排查使用
 ### 10.4 技术债务与改进
 
 #### 当前技术债务
+
 - 异步处理机制待完善
 - 部分模块单元测试覆盖率低
 - 文档需要持续更新
 - 性能基准测试不足
 
 #### 持续改进方向
+
 - **代码质量**：
   - 提高测试覆盖率（目标 > 80%）
   - 代码审查流程规范化
@@ -1619,24 +1668,24 @@ TRACE  - 详细追踪信息，问题排查使用
   - 向量数据库选型优化
   - 容器编排新技术跟踪
 
----
+***
 
 ## 附录
 
 ### A. 术语表
 
-| 术语 | 英文 | 说明 |
-|------|------|------|
-| Agent | Agent | AI 智能体，能够自主完成任务 |
-| MCP | Model Context Protocol | 模型上下文协议，标准化工具接口 |
-| RAG | Retrieval-Augmented Generation | 检索增强生成，结合检索和生成的问答技术 |
-| LLM | Large Language Model | 大型语言模型 |
-| Embedding | Embedding | 将文本转换为向量的技术 |
-| Token | Token | LLM 处理文本的基本单位 |
-| SSE | Server-Sent Events | 服务器推送事件协议 |
-| JWT | JSON Web Token | 身份认证令牌 |
-| RBAC | Role-Based Access Control | 基于角色的访问控制 |
-| HNSW | Hierarchical Navigable Small World | 高效近似最近邻搜索算法 |
+| 术语        | 英文                                 | 说明                  |
+| --------- | ---------------------------------- | ------------------- |
+| Agent     | Agent                              | AI 智能体，能够自主完成任务     |
+| MCP       | Model Context Protocol             | 模型上下文协议，标准化工具接口     |
+| RAG       | Retrieval-Augmented Generation     | 检索增强生成，结合检索和生成的问答技术 |
+| LLM       | Large Language Model               | 大型语言模型              |
+| Embedding | Embedding                          | 将文本转换为向量的技术         |
+| Token     | Token                              | LLM 处理文本的基本单位       |
+| SSE       | Server-Sent Events                 | 服务器推送事件协议           |
+| JWT       | JSON Web Token                     | 身份认证令牌              |
+| RBAC      | Role-Based Access Control          | 基于角色的访问控制           |
+| HNSW      | Hierarchical Navigable Small World | 高效近似最近邻搜索算法         |
 
 ### B. 参考文档
 
@@ -1648,11 +1697,11 @@ TRACE  - 详细追踪信息，问题排查使用
 
 ### C. 版本历史
 
-| 版本 | 日期 | 作者 | 变更说明 |
-|------|------|------|----------|
-| 1.0 | 2024-01 | Architecture Team | 初始版本 |
+| 版本  | 日期      | 作者                | 变更说明            |
+| --- | ------- | ----------------- | --------------- |
+| 1.0 | 2024-01 | Architecture Team | 初始版本            |
 | 2.0 | 2026-03 | Architecture Team | 基于 specs 目录全面重构 |
 
----
+***
 
 *本文档最后更新：2026 年 3 月*

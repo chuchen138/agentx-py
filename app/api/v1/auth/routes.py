@@ -1,26 +1,38 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import RedirectResponse
 from app.domain.user.model import UserCreate, UserResponse
-from app.domain.user.repository import RedisUserRepository, RedisUserSettingsRepository
+from app.domain.user.repository import SQLAlchemyUserRepository, SQLAlchemyUserSettingsRepository
 from app.domain.user.service import UserDomainService, UserSettingsDomainService
-from app.application.user.login_app_service import LoginAppService
 from app.application.user.sso_app_service import SsoAppService
+from app.application.auth.auth_app_service import AuthAppService
+from app.domain.auth.model import AuthSettingModel, AuthSettingResponse, AuthConfigDTO, AuthSettingUpdate, AuthSettingCreate
+from app.domain.auth.service import AuthSettingDomainService
+from app.domain.auth.constant import FeatureType, AuthFeatureKey
+from app.domain.auth.repository import SQLAlchemyAuthSettingRepository
+from app.core.database import get_db
+from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
+import uuid
+from app.api.v1.auth.auth_settings import router as auth_settings_router
 
 router = APIRouter()
 
 # 依赖项
-def get_user_domain_service():
-    user_repo = RedisUserRepository()
-    settings_repo = RedisUserSettingsRepository()
-    return UserDomainService(user_repo, settings_repo)
+def get_user_domain_service(db: Session = Depends(get_db)):
+    user_repo = SQLAlchemyUserRepository(db)
+    settings_repo = SQLAlchemyUserSettingsRepository(db)
+    return UserDomainService(user_repo, settings_repo, db)
 
-def get_login_app_service(user_domain_service: UserDomainService = Depends(get_user_domain_service)):
-    return LoginAppService(user_domain_service)
+def get_auth_app_service(db: Session = Depends(get_db)):
+    user_repo = SQLAlchemyUserRepository(db)
+    settings_repo = SQLAlchemyUserSettingsRepository(db)
+    return AuthAppService(user_repo, settings_repo, db)
 
-def get_sso_app_service(user_domain_service: UserDomainService = Depends(get_user_domain_service)):
-    user_repo = RedisUserRepository()
+def get_sso_app_service(user_domain_service: UserDomainService = Depends(get_user_domain_service), db: Session = Depends(get_db)):
+    user_repo = SQLAlchemyUserRepository(db)
     return SsoAppService(user_domain_service, user_repo)
+
+# 认证设置依赖项已合并到AuthAppService
 
 # 请求/响应模型
 class LoginRequest(BaseModel):
@@ -78,11 +90,11 @@ class ResetPasswordResponse(BaseModel):
 @router.post("/register", response_model=RegisterResponse)
 def register(
     request: RegisterRequest,
-    login_app_service: LoginAppService = Depends(get_login_app_service)
+    auth_app_service: AuthAppService = Depends(get_auth_app_service)
 ):
     """用户注册"""
     try:
-        user = login_app_service.register(
+        user = auth_app_service.register(
             UserCreate(
                 email=request.email,
                 password=request.password,
@@ -104,10 +116,10 @@ def register(
 @router.post("/login", response_model=LoginResponse)
 def login(
     request: LoginRequest,
-    login_app_service: LoginAppService = Depends(get_login_app_service)
+    auth_app_service: AuthAppService = Depends(get_auth_app_service)
 ):
     """用户登录"""
-    tokens = login_app_service.login(request.email, request.password)
+    tokens = auth_app_service.login(request.email, request.password)
     if not tokens:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -118,19 +130,19 @@ def login(
 
 @router.post("/logout")
 def logout(
-    login_app_service: LoginAppService = Depends(get_login_app_service)
+    auth_app_service: AuthAppService = Depends(get_auth_app_service)
 ):
     """用户登出"""
-    login_app_service.logout(None)  # 简化处理
+    auth_app_service.logout(None)  # 简化处理
     return {"message": "登出成功"}
 
 @router.post("/refresh", response_model=RefreshTokenResponse)
 def refresh_token(
     request: RefreshTokenRequest,
-    login_app_service: LoginAppService = Depends(get_login_app_service)
+    auth_app_service: AuthAppService = Depends(get_auth_app_service)
 ):
     """刷新 Token"""
-    tokens = login_app_service.refresh_token(request.refresh_token)
+    tokens = auth_app_service.refresh_token(request.refresh_token)
     if not tokens:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -178,11 +190,11 @@ def handle_sso_callback(
 @router.post("/forgot-password", response_model=ForgotPasswordResponse)
 def forgot_password(
     request: ForgotPasswordRequest,
-    login_app_service: LoginAppService = Depends(get_login_app_service)
+    auth_app_service: AuthAppService = Depends(get_auth_app_service)
 ):
     """找回密码"""
     try:
-        success = login_app_service.send_verification_code(request.email)
+        success = auth_app_service.send_verification_code(request.email)
         if success:
             return ForgotPasswordResponse(message="验证码已发送到您的邮箱")
         else:
@@ -201,43 +213,43 @@ def forgot_password(
 
 @router.post("/verify-code", response_model=VerifyCodeResponse)
 def verify_code(
-    request: VerifyCodeRequest,
-    login_app_service: LoginAppService = Depends(get_login_app_service)
-):
-    """验证验证码"""
-    try:
-        success = login_app_service.verify_code(request.email, request.code)
-        if success:
-            return VerifyCodeResponse(message="验证码验证成功")
-        else:
+        request: VerifyCodeRequest,
+        auth_app_service: AuthAppService = Depends(get_auth_app_service)
+    ):
+        """验证验证码"""
+        try:
+            success = auth_app_service.verify_code(request.email, request.code, mark_as_used=False)
+            if success:
+                return VerifyCodeResponse(message="验证码验证成功")
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="验证码错误或已过期"
+                )
+        except HTTPException:
+            raise
+        except Exception as e:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="验证码错误或已过期"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="验证验证码失败"
             )
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="验证验证码失败"
-        )
 
 @router.post("/reset-password", response_model=ResetPasswordResponse)
 def reset_password(
     request: ResetPasswordRequest,
-    login_app_service: LoginAppService = Depends(get_login_app_service)
+    auth_app_service: AuthAppService = Depends(get_auth_app_service)
 ):
     """重置密码"""
     try:
         # 先验证验证码
-        code_verified = login_app_service.verify_code(request.email, request.code)
+        code_verified = auth_app_service.verify_code(request.email, request.code)
         if not code_verified:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="验证码错误或已过期"
             )
         # 重置密码
-        success = login_app_service.reset_password(request.email, request.new_password)
+        success = auth_app_service.reset_password(request.email, request.new_password)
         if success:
             return ResetPasswordResponse(message="密码重置成功")
         else:
@@ -251,4 +263,148 @@ def reset_password(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="重置密码失败"
+        )
+
+# 认证设置路由
+@router.get("/config", response_model=AuthConfigDTO)
+def get_auth_config(
+    auth_app_service: AuthAppService = Depends(get_auth_app_service)
+):
+    """获取前端认证配置"""
+    try:
+        return auth_app_service.get_auth_config()
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+@router.get("/settings", response_model=list[AuthSettingResponse])
+def get_all_auth_settings(
+    auth_app_service: AuthAppService = Depends(get_auth_app_service)
+):
+    """获取所有认证配置"""
+    try:
+        return auth_app_service.get_all_auth_settings()
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+@router.get("/settings/{setting_id}", response_model=AuthSettingResponse)
+def get_auth_setting_by_id(
+    setting_id: str,
+    auth_app_service: AuthAppService = Depends(get_auth_app_service)
+):
+    """根据 ID 获取认证配置"""
+    try:
+        setting = auth_app_service.get_auth_setting_by_id(setting_id)
+        if not setting:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"认证设置不存在，ID: {setting_id}"
+            )
+        return setting
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+@router.post("/settings/{setting_id}/toggle", response_model=AuthSettingResponse)
+def toggle_auth_setting(
+    setting_id: str,
+    auth_app_service: AuthAppService = Depends(get_auth_app_service)
+):
+    """切换认证配置启用状态"""
+    try:
+        return auth_app_service.toggle_auth_setting(setting_id)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+@router.put("/settings/{setting_id}", response_model=AuthSettingResponse)
+def update_auth_setting(
+    setting_id: str,
+    request: AuthSettingUpdate,
+    auth_app_service: AuthAppService = Depends(get_auth_app_service)
+):
+    """更新认证配置"""
+    try:
+        return auth_app_service.update_auth_setting(setting_id, request)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+@router.delete("/settings/{setting_id}")
+def delete_auth_setting(
+    setting_id: str,
+    auth_app_service: AuthAppService = Depends(get_auth_app_service)
+):
+    """删除认证配置"""
+    try:
+        success = auth_app_service.delete_auth_setting(setting_id)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"认证设置不存在，ID: {setting_id}"
+            )
+        return {"message": "删除成功"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+@router.post("/settings", response_model=AuthSettingResponse)
+def create_auth_setting(
+    request: AuthSettingCreate,
+    auth_app_service: AuthAppService = Depends(get_auth_app_service)
+):
+    """创建认证配置"""
+    try:
+        setting = AuthSettingModel(
+            feature_type=request.feature_type,
+            feature_key=request.feature_key,
+            feature_name=request.feature_name,
+            enabled=request.enabled,
+            config_data=request.config_data,
+            display_order=request.display_order,
+            description=request.description
+        )
+        return auth_app_service.create_auth_setting(setting)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
         )

@@ -211,7 +211,12 @@ async def download_file(file_id: str):
             # 尝试从Minio加载
             print("File not found in local storage, trying Minio")
             from app.infrastructure.storage.backend.minio_storage import MinioStorageBackend
-            minio_backend = MinioStorageBackend(bucket="agentx-files")
+            minio_backend = MinioStorageBackend(
+                endpoint="10.128.18.216:9000",
+                access_key="admin",
+                secret_key="password",
+                bucket="agentx-files"
+            )
             try:
                 file_content = minio_backend.load(file_record.file_url)
                 print("File loaded from Minio")

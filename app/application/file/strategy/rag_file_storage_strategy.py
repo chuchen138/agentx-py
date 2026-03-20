@@ -16,18 +16,31 @@ class RagFileStorageStrategy(FileStorageStrategy):
     """RAG文件存储策略"""
 
     def __init__(self, storage_backend: MinioStorageBackend = None):
-        if storage_backend:
-            self.storage_backend = storage_backend
-        else:
-            try:
-                # 尝试使用Minio存储
-                self.storage_backend = MinioStorageBackend(bucket="rag-documents", base_url="http://localhost:9000/rag-documents")
-            except Exception as e:
-                # 如果Minio连接失败，降级到本地存储
-                print(f"Warning: Minio connection failed, falling back to local storage: {e}")
-                self.storage_backend = LocalStorageBackend(root_dir="./uploads/rag")
+        self.storage_backend = storage_backend
+        self._initialized = False
         self.max_size = 500 * 1024 * 1024  # 500MB
         self.allowed_extensions = {"pdf", "doc", "docx", "txt", "md", "csv"}
+    
+    def _initialize_storage(self):
+        """初始化存储后端"""
+        if not self._initialized:
+            if not self.storage_backend:
+                try:
+                    # 尝试使用Minio存储
+                    from app.infrastructure.storage.backend.minio_storage import MinioStorageBackend
+                    self.storage_backend = MinioStorageBackend(
+                        endpoint="10.128.18.216:9000",
+                        access_key="admin",
+                        secret_key="password",
+                        bucket="rag-documents",
+                        base_url="http://10.128.18.216:9000/rag-documents"
+                    )
+                except Exception as e:
+                    # 如果Minio连接失败，降级到本地存储
+                    print(f"Warning: Minio connection failed, falling back to local storage: {e}")
+                    from app.infrastructure.storage.backend.local_storage import LocalStorageBackend
+                    self.storage_backend = LocalStorageBackend(root_dir="./uploads/rag")
+            self._initialized = True
 
     def _generate_filename(self, user_id: str, dataset_id: str, original_filename: str) -> str:
         """生成存储文件名"""
@@ -60,6 +73,9 @@ class RagFileStorageStrategy(FileStorageStrategy):
 
     def save(self, file: bytes, metadata: Dict[str, Any]) -> FileRecord:
         """保存文件"""
+        # 初始化存储后端
+        self._initialize_storage()
+        
         # 验证文件
         original_filename = metadata.get("original_filename", "file")
         if not self.validate_file(file, original_filename):
@@ -98,6 +114,9 @@ class RagFileStorageStrategy(FileStorageStrategy):
 
     def update(self, file_record: FileRecord, file: bytes) -> FileRecord:
         """更新文件"""
+        # 初始化存储后端
+        self._initialize_storage()
+        
         # 验证文件
         if not self.validate_file(file, file_record.original_filename):
             raise ValueError("Invalid RAG file")
@@ -118,6 +137,8 @@ class RagFileStorageStrategy(FileStorageStrategy):
 
     def delete(self, file_url: str) -> bool:
         """删除文件"""
+        # 初始化存储后端
+        self._initialize_storage()
         return self.storage_backend.delete(file_url)
 
     def validate_file(self, file: bytes, filename: str) -> bool:
@@ -132,4 +153,6 @@ class RagFileStorageStrategy(FileStorageStrategy):
 
     def get_storage_backend(self) -> StorageBackend:
         """获取存储后端"""
+        # 初始化存储后端
+        self._initialize_storage()
         return self.storage_backend

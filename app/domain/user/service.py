@@ -1,13 +1,14 @@
 from typing import Optional
 import uuid
 import random
-import redis
 import os
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from app.domain.user.model import UserModel, UserSettingsModel, UserSettingsConfig
 from app.domain.user.repository import UserRepository, UserSettingsRepository
+from app.domain.auth.model import VerificationCode
+from sqlalchemy.orm import Session
 
 # 密码加密上下文
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
@@ -21,9 +22,10 @@ REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
 class UserDomainService:
     """用户领域服务"""
     
-    def __init__(self, user_repo: UserRepository, settings_repo: UserSettingsRepository):
+    def __init__(self, user_repo: UserRepository, settings_repo: UserSettingsRepository, db: Session):
         self.user_repo = user_repo
         self.settings_repo = settings_repo
+        self.db = db
     
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         """验证密码"""
@@ -116,32 +118,47 @@ class UserDomainService:
         return ''.join(random.choices('0123456789', k=6))
     
     def store_verification_code(self, email: str, code: str) -> None:
-        """存储验证码到 Redis"""
-        # 连接 Redis
-        r = redis.Redis(
-            host=os.getenv("REDIS_HOST", "localhost"),
-            port=int(os.getenv("REDIS_PORT", "6379")),
-            db=int(os.getenv("REDIS_DB", "0"))
+        """存储验证码到 PostgreSQL"""
+        # 先删除该邮箱的旧验证码
+        existing_codes = self.db.query(VerificationCode).filter(
+            VerificationCode.email == email,
+            VerificationCode.is_used == False
+        ).all()
+        for existing_code in existing_codes:
+            existing_code.is_used = True
+            self.db.add(existing_code)
+        
+        # 创建新验证码，10分钟有效期
+        expires_at = datetime.utcnow() + timedelta(minutes=10)
+        verification_code = VerificationCode(
+            email=email,
+            code=code,
+            expires_at=expires_at
         )
-        # 存储验证码，10分钟有效期
-        key = f"verification_code:{email}"
-        r.setex(key, 600, code)
+        self.db.add(verification_code)
+        self.db.commit()
     
     def verify_verification_code(self, email: str, code: str) -> bool:
         """验证验证码"""
-        # 连接 Redis
-        r = redis.Redis(
-            host=os.getenv("REDIS_HOST", "localhost"),
-            port=int(os.getenv("REDIS_PORT", "6379")),
-            db=int(os.getenv("REDIS_DB", "0"))
-        )
-        # 获取存储的验证码
-        key = f"verification_code:{email}"
-        stored_code = r.get(key)
-        if not stored_code:
+        # 查找未使用且未过期的验证码
+        now = datetime.utcnow()
+        verification_code = self.db.query(VerificationCode).filter(
+            VerificationCode.email == email,
+            VerificationCode.code == code,
+            VerificationCode.is_used == False,
+            VerificationCode.expires_at > now
+        ).first()
+        
+        if not verification_code:
             return False
-        # 验证验证码
-        return stored_code.decode() == code
+        
+        # 标记验证码为已使用
+        verification_code.is_used = True
+        verification_code.used_at = now
+        self.db.add(verification_code)
+        self.db.commit()
+        
+        return True
     
     def reset_password(self, email: str, new_password: str) -> bool:
         """重置密码"""

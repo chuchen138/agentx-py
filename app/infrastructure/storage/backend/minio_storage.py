@@ -11,8 +11,8 @@ class MinioStorageBackend(StorageBackend):
 
     def __init__(self, 
                  endpoint: str = "10.128.18.216:9000",
-                 access_key: str = "minioadmin",
-                 secret_key: str = "minioadmin",
+                 access_key: str = "admin",
+                 secret_key: str = "password",
                  bucket: str = "agentx-files",
                  secure: bool = False,
                  region: str = "us-east-1",
@@ -288,8 +288,8 @@ class AsyncMinioStorageBackend(AsyncStorageBackend):
 
     def __init__(self, 
                  endpoint: str = "10.128.18.216:9000",
-                 access_key: str = "minioadmin",
-                 secret_key: str = "minioadmin",
+                 access_key: str = "admin",
+                 secret_key: str = "password",
                  bucket: str = "agentx-files",
                  secure: bool = False,
                  region: str = "us-east-1",

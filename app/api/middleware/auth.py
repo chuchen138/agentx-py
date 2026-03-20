@@ -1,22 +1,25 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Optional
-from app.domain.user.repository import RedisUserRepository, RedisUserSettingsRepository
+from app.domain.user.repository import SQLAlchemyUserRepository, SQLAlchemyUserSettingsRepository
 from app.domain.user.service import UserDomainService
+from app.core.database import get_db
+from sqlalchemy.orm import Session
 import uuid
 
 security = HTTPBearer()
 
 def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
 ):
     """获取当前用户"""
     token = credentials.credentials
     
     # 验证令牌
-    user_repo = RedisUserRepository()
-    settings_repo = RedisUserSettingsRepository()
-    user_domain_service = UserDomainService(user_repo, settings_repo)
+    user_repo = SQLAlchemyUserRepository(db)
+    settings_repo = SQLAlchemyUserSettingsRepository(db)
+    user_domain_service = UserDomainService(user_repo, settings_repo, db)
     
     payload = user_domain_service.verify_token(token)
     if not payload:
@@ -39,13 +42,14 @@ def get_current_user(
     return user
 
 def optional_auth(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    db: Session = Depends(get_db)
 ):
     """可选认证依赖"""
     if not credentials:
         return None
     
     try:
-        return get_current_user(credentials)
+        return get_current_user(credentials, db)
     except HTTPException:
         return None

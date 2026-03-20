@@ -17,16 +17,8 @@ class GeneralFileStorageStrategy(FileStorageStrategy):
     """通用文件存储策略"""
 
     def __init__(self, storage_backend: MinioStorageBackend = None):
-        if storage_backend:
-            self.storage_backend = storage_backend
-        else:
-            try:
-                # 尝试使用Minio存储
-                self.storage_backend = MinioStorageBackend(bucket="agentx-files", base_url="http://localhost:9000/agentx-files")
-            except Exception as e:
-                # 如果Minio连接失败，降级到本地存储
-                print(f"Warning: Minio connection failed, falling back to local storage: {e}")
-                self.storage_backend = LocalStorageBackend(root_dir="./uploads/general")
+        self.storage_backend = storage_backend
+        self._initialized = False
         self.max_size = 50 * 1024 * 1024  # 50MB
         self.allowed_extensions = {
             "jpg", "jpeg", "png", "webp", "gif", "bmp", "svg",  # 图片
@@ -41,6 +33,27 @@ class GeneralFileStorageStrategy(FileStorageStrategy):
             "sql", "db", "sqlite",  # 数据库文件
             "log", "ini", "conf", "cfg"  # 日志和配置文件
         }
+    
+    def _initialize_storage(self):
+        """初始化存储后端"""
+        if not self._initialized:
+            if not self.storage_backend:
+                try:
+                    # 尝试使用Minio存储
+                    from app.infrastructure.storage.backend.minio_storage import MinioStorageBackend
+                    self.storage_backend = MinioStorageBackend(
+                        endpoint="10.128.18.216:9000",
+                        access_key="admin",
+                        secret_key="password",
+                        bucket="agentx-files",
+                        base_url="http://10.128.18.216:9000/agentx-files"
+                    )
+                except Exception as e:
+                    # 如果Minio连接失败，降级到本地存储
+                    print(f"Warning: Minio connection failed, falling back to local storage: {e}")
+                    from app.infrastructure.storage.backend.local_storage import LocalStorageBackend
+                    self.storage_backend = LocalStorageBackend(root_dir="./uploads/general")
+            self._initialized = True
 
     def _generate_filename(self, user_id: str, original_filename: str) -> str:
         """生成存储文件名"""
@@ -72,6 +85,9 @@ class GeneralFileStorageStrategy(FileStorageStrategy):
 
     def save(self, file: bytes, metadata: Dict[str, Any]) -> FileRecord:
         """保存文件"""
+        # 初始化存储后端
+        self._initialize_storage()
+        
         # 验证文件
         original_filename = metadata.get("original_filename", "file")
         if not self.validate_file(file, original_filename):
@@ -87,6 +103,9 @@ class GeneralFileStorageStrategy(FileStorageStrategy):
         # 保存到存储后端
         file_url = self.storage_backend.save(file, filename)
 
+        # 确定存储后端类型
+        storage_backend_type = StorageBackendType.MINIO.value if isinstance(self.storage_backend, MinioStorageBackend) else StorageBackendType.LOCAL.value
+        
         # 创建文件记录
         import uuid
         return FileRecord(
@@ -99,12 +118,15 @@ class GeneralFileStorageStrategy(FileStorageStrategy):
             file_url=file_url,
             file_size=len(file),
             mime_type=mime_type,
-            storage_backend=StorageBackendType.LOCAL.value,
+            storage_backend=storage_backend_type,
             file_metadata=metadata
         )
 
     def update(self, file_record: FileRecord, file: bytes) -> FileRecord:
         """更新文件"""
+        # 初始化存储后端
+        self._initialize_storage()
+        
         # 验证文件
         if not self.validate_file(file, file_record.original_filename):
             raise ValueError("Invalid general file")
@@ -125,6 +147,8 @@ class GeneralFileStorageStrategy(FileStorageStrategy):
 
     def delete(self, file_url: str) -> bool:
         """删除文件"""
+        # 初始化存储后端
+        self._initialize_storage()
         return self.storage_backend.delete(file_url)
 
     def validate_file(self, file: bytes, filename: str) -> bool:
@@ -143,4 +167,6 @@ class GeneralFileStorageStrategy(FileStorageStrategy):
 
     def get_storage_backend(self) -> StorageBackend:
         """获取存储后端"""
+        # 初始化存储后端
+        self._initialize_storage()
         return self.storage_backend

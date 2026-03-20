@@ -121,6 +121,7 @@ cd AgentX/deploy
 |------|------|------|
 | 主应用 | http://localhost:3000 | 前端界面 |
 | 后端API | http://localhost:8088 | API服务 |
+| Swagger文档 | http://localhost:8088/docs | API接口文档 |
 | 数据库 | http://localhost:5432 | PostgreSQL（可选） |
 | RabbitMQ | http://localhost:5672 | 消息队列（可选） |
 | RabbitMQ管理 | http://localhost:15672 | 队列管理界面（可选） |

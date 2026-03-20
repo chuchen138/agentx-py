@@ -13,31 +13,31 @@ os.environ["TESTING"] = "True"
 # 加载环境变量
 load_dotenv()
 
-# 确保所有模型都已导入
-from app.domain.user.model import UserModel, UserSettingsModel
-
 # 导入数据库相关模块
 from app.core.database import Base, engine, SessionLocal
 
+# 导入所有模型
+from app.domain.user.model import UserModel, UserSettingsModel
+from app.domain.auth.model import VerificationCode
+from app.domain.auth_setting.model import AuthSettingModel
+
 # 导入app
 from app.main import app
-
-# 在模块级别创建数据库表
-# 确保所有模型都已导入和注册
-from app.domain.user.model import UserModel, UserSettingsModel
-# 创建数据库表
-Base.metadata.create_all(bind=engine)
 
 
 @pytest.fixture(scope="module", autouse=True)
 def setup_database():
     """设置数据库，创建所有表"""
+    # 创建数据库表
+    Base.metadata.create_all(bind=engine)
     yield
     # 测试结束后清理数据库
     db = SessionLocal()
     try:
+        db.query(VerificationCode).delete()
         db.query(UserSettingsModel).delete()
         db.query(UserModel).delete()
+        db.query(AuthSettingModel).delete()
         db.commit()
     finally:
         db.close()
@@ -171,4 +171,4 @@ def test_forgot_password(client):
     # 验证响应
     assert response.status_code == 200
     data = response.json()
-    assert data["message"] == "重置链接已发送到您的邮箱"
+    assert data["message"] == "验证码已发送到您的邮箱"

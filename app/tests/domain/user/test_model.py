@@ -2,7 +2,8 @@
 """用户领域模型单元测试"""
 
 import pytest
-from app.domain.user.model import UserModel, UserSettingsModel, UserCreate, UserUpdate
+import uuid
+from app.domain.user.model import UserModel, UserSettingsModel, UserCreate, UserUpdate, UserSettingsConfig
 from app.domain.user.service import UserDomainService
 
 
@@ -16,41 +17,35 @@ def test_user_model_creation():
     
     # 创建用户模型
     user = UserModel(
+        id=uuid.uuid4(),
         email=user_data.email,
+        password_hash="hashed_password",
         nickname=user_data.nickname
     )
     
     # 验证用户属性
     assert user.email == "test@example.com"
     assert user.nickname == "Test User"
-    assert user.is_active is True
-    assert user.is_superuser is False
+    assert user.login_platform == "normal"
+    assert user.is_admin is False
 
 
 def test_user_settings_model_creation():
     """测试用户设置模型创建"""
-    user = UserModel(
-        email="test@example.com",
-        nickname="Test User"
-    )
+    user_id = uuid.uuid4()
     
     # 创建用户设置
     settings = UserSettingsModel(
-        user=user,
-        setting_config={
-            "theme": "light",
-            "language": "zh-CN",
-            "email_notifications": True,
-            "sms_notifications": False
-        }
+        id=uuid.uuid4(),
+        user_id=user_id,
+        setting_config=UserSettingsConfig().model_dump()
     )
     
     # 验证设置属性
-    assert settings.setting_config["theme"] == "light"
-    assert settings.setting_config["language"] == "zh-CN"
-    assert settings.setting_config["email_notifications"] is True
-    assert settings.setting_config["sms_notifications"] is False
-    assert settings.user == user
+    assert settings.user_id == user_id
+    assert "default_model" in settings.setting_config
+    assert "theme" in settings.setting_config
+    assert "language" in settings.setting_config
 
 
 def test_user_domain_service_password_hashing():
@@ -61,8 +56,9 @@ def test_user_domain_service_password_hashing():
     # 创建mock依赖
     mock_user_repo = Mock(spec=UserRepository)
     mock_settings_repo = Mock(spec=UserSettingsRepository)
+    mock_db = Mock()
     
-    service = UserDomainService(user_repo=mock_user_repo, settings_repo=mock_settings_repo)
+    service = UserDomainService(user_repo=mock_user_repo, settings_repo=mock_settings_repo, db=mock_db)
     password = "password123"
     
     # 生成密码哈希
@@ -82,11 +78,13 @@ def test_user_domain_service_token_creation():
     # 创建mock依赖
     mock_user_repo = Mock(spec=UserRepository)
     mock_settings_repo = Mock(spec=UserSettingsRepository)
+    mock_db = Mock()
     
-    service = UserDomainService(user_repo=mock_user_repo, settings_repo=mock_settings_repo)
+    service = UserDomainService(user_repo=mock_user_repo, settings_repo=mock_settings_repo, db=mock_db)
     user = UserModel(
-        id="12345678-1234-5678-1234-567812345678",
+        id=uuid.uuid4(),
         email="test@example.com",
+        password_hash="hashed_password",
         nickname="Test User"
     )
     
