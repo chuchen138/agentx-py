@@ -22,6 +22,7 @@ email-validator==2.1.0
 # 工具库
 httpx==0.25.2
 python-dotenv==1.0.0
+cryptography==41.0.7
 
 # 测试
 pytest==7.4.3

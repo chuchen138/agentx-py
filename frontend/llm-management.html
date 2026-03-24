@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM 管理</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .llm-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .llm-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .llm-header h1 {
+            color: #333;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .btn-primary {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #45a049;
+        }
+        .btn-secondary {
+            background-color: #f1f1f1;
+            color: #333;
+            margin-right: 10px;
+        }
+        .btn-secondary:hover {
+            background-color: #e0e0e0;
+        }
+        .tab-container {
+            margin-bottom: 20px;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .tab-btn {
+            padding: 10px 20px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 14px;
+            color: #666;
+            border-bottom: 2px solid transparent;
+        }
+        .tab-btn.active {
+            color: #4CAF50;
+            border-bottom-color: #4CAF50;
+            font-weight: 500;
+        }
+        .tab-content {
+            display: none;
+            padding: 20px 0;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .card-header h3 {
+            color: #333;
+            margin: 0;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        .form-actions {
+            margin-top: 20px;
+            display: flex;
+            justify-content: flex-end;
+        }
+        .table-container {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        th {
+            background-color: #f5f5f5;
+            font-weight: 500;
+        }
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .status-active {
+            background-color: #e8f5e8;
+            color: #2e7d32;
+        }
+        .status-inactive {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        .action-btn {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .action-btn.edit {
+            background-color: #2196F3;
+            color: white;
+        }
+        .action-btn.delete {
+            background-color: #f44336;
+            color: white;
+        }
+        .action-btn.enable {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .action-btn.disable {
+            background-color: #ff9800;
+            color: white;
+        }
+        .message {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="llm-container">
+        <!-- 头部 -->
+        <div class="llm-header">
+            <h1>LLM 管理</h1>
+            <div>
+                <button class="btn btn-secondary" onclick="window.location.href='home.html'">返回首页</button>
+            </div>
+        </div>
+        
+        <!-- 消息提示 -->
+        <div id="success-message" class="message success">
+            <span id="success-text">操作成功</span>
+        </div>
+        <div id="error-message" class="message error">
+            <span id="error-text">操作失败</span>
+        </div>
+        
+        <!-- 选项卡 -->
+        <div class="tab-container">
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="providers">服务商管理</button>
+                <button class="tab-btn" data-tab="models">模型管理</button>
+                <button class="tab-btn" data-tab="conversation">模型对话</button>
+            </div>
+            
+            <!-- 服务商管理 -->
+            <div id="providers-tab" class="tab-content active">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>服务商列表</h3>
+                        <button class="btn btn-primary" onclick="showProviderModal()">添加服务商</button>
+                    </div>
+                    <div class="table-container">
+                        <table id="providers-table">
+                            <thead>
+                                <tr>
+                                    <th>名称</th>
+                                    <th>协议</th>
+                                    <th>状态</th>
+                                    <th>是否官方</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- 服务商数据将通过JavaScript动态添加 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 模型管理 -->
+            <div id="models-tab" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>模型列表</h3>
+                        <button class="btn btn-primary" onclick="showModelModal()">添加模型</button>
+                    </div>
+                    <div class="table-container">
+                        <table id="models-table">
+                            <thead>
+                                <tr>
+                                    <th>名称</th>
+                                    <th>模型ID</th>
+                                    <th>类型</th>
+                                    <th>服务商</th>
+                                    <th>状态</th>
+                                    <th>是否官方</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- 模型数据将通过JavaScript动态添加 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 模型对话 -->
+            <div id="conversation-tab" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>模型对话</h3>
+                        <select id="model-select" class="form-control">
+                            <option value="">选择模型</option>
+                            <!-- 模型选项将通过JavaScript动态添加 -->
+                        </select>
+                    </div>
+                    <div id="chat-container" style="height: 400px; border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px; overflow-y: auto; margin-bottom: 15px;">
+                        <!-- 对话内容将通过JavaScript动态添加 -->
+                    </div>
+                    <div class="chat-input">
+                        <textarea id="message-input" placeholder="输入消息..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; resize: vertical; min-height: 80px;"></textarea>
+                        <div style="margin-top: 10px; display: flex; justify-content: flex-end;">
+                            <button class="btn btn-primary" onclick="sendMessage()">发送</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 服务商模态框 -->
+    <div id="provider-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1000;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 8px; width: 500px; max-width: 90%;">
+            <h3 id="provider-modal-title">添加服务商</h3>
+            <form id="provider-form">
+                <input type="hidden" id="provider-id">
+                <div class="form-group">
+                    <label for="provider-name">名称</label>
+                    <input type="text" id="provider-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="provider-protocol">协议</label>
+                    <select id="provider-protocol" required>
+                        <option value="OPENAI">OpenAI</option>
+                        <option value="MOONSHOT">Moonshot</option>
+                        <option value="AZURE_OPENAI">Azure OpenAI</option>
+                        <option value="CUSTOM">自定义</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="provider-description">描述</label>
+                    <textarea id="provider-description"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="provider-api-key">API Key</label>
+                    <input type="text" id="provider-api-key" required>
+                </div>
+                <div class="form-group">
+                    <label for="provider-base-url">Base URL</label>
+                    <input type="text" id="provider-base-url" placeholder="可选，使用默认值">
+                </div>
+                <div class="form-group">
+                    <label for="provider-status">状态</label>
+                    <select id="provider-status">
+                        <option value="true">启用</option>
+                        <option value="false">禁用</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeProviderModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 模型模态框 -->
+    <div id="model-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1000;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 8px; width: 500px; max-width: 90%;">
+            <h3 id="model-modal-title">添加模型</h3>
+            <form id="model-form">
+                <input type="hidden" id="model-id">
+                <div class="form-group">
+                    <label for="model-provider">服务商</label>
+                    <select id="model-provider" required>
+                        <option value="">选择服务商</option>
+                        <!-- 服务商选项将通过JavaScript动态添加 -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="model-model-id">模型ID</label>
+                    <input type="text" id="model-model-id" required>
+                </div>
+                <div class="form-group">
+                    <label for="model-name">名称</label>
+                    <input type="text" id="model-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="model-description">描述</label>
+                    <textarea id="model-description"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="model-endpoint">模型部署名称</label>
+                    <input type="text" id="model-endpoint" placeholder="可选">
+                </div>
+                <div class="form-group">
+                    <label for="model-type">类型</label>
+                    <select id="model-type" required>
+                        <option value="CHAT">对话模型</option>
+                        <option value="EMBEDDING">嵌入模型</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="model-status">状态</label>
+                    <select id="model-status">
+                        <option value="true">启用</option>
+                        <option value="false">禁用</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModelModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        // 选项卡切换
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                // 移除所有活动状态
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                // 添加当前活动状态
+                btn.classList.add('active');
+                const tabId = btn.getAttribute('data-tab');
+                document.getElementById(`${tabId}-tab`).classList.add('active');
+                
+                // 如果切换到对话标签，加载模型列表
+                if (tabId === 'conversation') {
+                    loadModelsForConversation();
+                }
+            });
+        });
+        
+        // 显示服务商模态框
+        function showProviderModal(provider = null) {
+            const modal = document.getElementById('provider-modal');
+            const title = document.getElementById('provider-modal-title');
+            
+            if (provider) {
+                title.textContent = '编辑服务商';
+                document.getElementById('provider-id').value = provider.id;
+                document.getElementById('provider-name').value = provider.name;
+                document.getElementById('provider-protocol').value = provider.protocol;
+                document.getElementById('provider-description').value = provider.description || '';
+                document.getElementById('provider-api-key').value = provider.config.api_key;
+                document.getElementById('provider-base-url').value = provider.config.base_url || '';
+                document.getElementById('provider-status').value = provider.status.toString();
+            } else {
+                title.textContent = '添加服务商';
+                document.getElementById('provider-form').reset();
+                document.getElementById('provider-id').value = '';
+            }
+            
+            modal.style.display = 'block';
+        }
+        
+        // 关闭服务商模态框
+        function closeProviderModal() {
+            document.getElementById('provider-modal').style.display = 'none';
+        }
+        
+        // 显示模型模态框
+        function showModelModal(model = null) {
+            const modal = document.getElementById('model-modal');
+            const title = document.getElementById('model-modal-title');
+            
+            // 加载服务商列表
+            loadProvidersForModel();
+            
+            if (model) {
+                title.textContent = '编辑模型';
+                document.getElementById('model-id').value = model.id;
+                document.getElementById('model-provider').value = model.provider_id;
+                document.getElementById('model-model-id').value = model.model_id;
+                document.getElementById('model-name').value = model.name;
+                document.getElementById('model-description').value = model.description || '';
+                document.getElementById('model-endpoint').value = model.model_endpoint || '';
+                document.getElementById('model-type').value = model.type;
+                document.getElementById('model-status').value = model.status.toString();
+            } else {
+                title.textContent = '添加模型';
+                document.getElementById('model-form').reset();
+                document.getElementById('model-id').value = '';
+            }
+            
+            modal.style.display = 'block';
+        }
+        
+        // 关闭模型模态框
+        function closeModelModal() {
+            document.getElementById('model-modal').style.display = 'none';
+        }
+        
+        // 加载服务商列表
+        async function loadProviders() {
+            try {
+                // 调用后端API
+                const response = await fetch('http://localhost:8000/api/v1/llm/providers?provider_type=ALL');
+                if (!response.ok) {
+                    throw new Error('加载服务商失败');
+                }
+                const providers = await response.json();
+                
+                const tbody = document.getElementById('providers-table').querySelector('tbody');
+                tbody.innerHTML = '';
+                
+                providers.forEach(provider => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${provider.name}</td>
+                        <td>${provider.protocol}</td>
+                        <td><span class="status-badge ${provider.status ? 'status-active' : 'status-inactive'}">${provider.status ? '启用' : '禁用'}</span></td>
+                        <td>${provider.is_official ? '是' : '否'}</td>
+                        <td class="action-buttons">
+                            <button class="action-btn edit" onclick="showProviderModal(${JSON.stringify(provider)})")">编辑</button>
+                            <button class="action-btn ${provider.status ? 'disable' : 'enable'}" onclick="toggleProviderStatus('${provider.id}', ${!provider.status})">${provider.status ? '禁用' : '启用'}</button>
+                            ${!provider.is_official ? `<button class="action-btn delete" onclick="deleteProvider('${provider.id}')">删除</button>` : ''}
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (error) {
+                showError('加载服务商失败');
+                console.error(error);
+            }
+        }
+        
+        // 加载模型列表
+        async function loadModels() {
+            try {
+                // 调用后端API
+                const response = await fetch('http://localhost:8000/api/v1/llm/models/active');
+                if (!response.ok) {
+                    throw new Error('加载模型失败');
+                }
+                const models = await response.json();
+                
+                const tbody = document.getElementById('models-table').querySelector('tbody');
+                tbody.innerHTML = '';
+                
+                models.forEach(model => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${model.name}</td>
+                        <td>${model.model_id}</td>
+                        <td>${model.type === 'CHAT' ? '对话' : '嵌入'}</td>
+                        <td>${model.provider_name || '未知'}</td>
+                        <td><span class="status-badge ${model.status ? 'status-active' : 'status-inactive'}">${model.status ? '启用' : '禁用'}</span></td>
+                        <td>${model.is_official ? '是' : '否'}</td>
+                        <td class="action-buttons">
+                            <button class="action-btn edit" onclick="showModelModal(${JSON.stringify(model)})")">编辑</button>
+                            <button class="action-btn ${model.status ? 'disable' : 'enable'}" onclick="toggleModelStatus('${model.id}', ${!model.status})">${model.status ? '禁用' : '启用'}</button>
+                            ${!model.is_official ? `<button class="action-btn delete" onclick="deleteModel('${model.id}')">删除</button>` : ''}
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (error) {
+                showError('加载模型失败');
+                console.error(error);
+            }
+        }
+        
+        // 加载服务商列表用于模型选择
+        async function loadProvidersForModel() {
+            try {
+                // 调用后端API
+                const response = await fetch('http://localhost:8000/api/v1/llm/providers?provider_type=ALL');
+                if (!response.ok) {
+                    throw new Error('加载服务商失败');
+                }
+                const providers = await response.json();
+                
+                const select = document.getElementById('model-provider');
+                select.innerHTML = '<option value="">选择服务商</option>';
+                
+                providers.forEach(provider => {
+                    const option = document.createElement('option');
+                    option.value = provider.id;
+                    option.textContent = provider.name;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('加载服务商失败:', error);
+            }
+        }
+        
+        // 加载模型列表用于对话
+        async function loadModelsForConversation() {
+            try {
+                // 调用后端API
+                const response = await fetch('http://localhost:8000/api/v1/llm/models/active');
+                if (!response.ok) {
+                    throw new Error('加载模型失败');
+                }
+                const models = await response.json();
+                
+                const select = document.getElementById('model-select');
+                select.innerHTML = '<option value="">选择模型</option>';
+                
+                models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.model_id;
+                    option.textContent = model.name;
+                    select.appendChild(option);
+                });
+                
+                // 加载用户偏好设置
+                loadUserPreference();
+            } catch (error) {
+                console.error('加载模型失败:', error);
+            }
+        }
+        
+        // 加载用户偏好设置
+        async function loadUserPreference() {
+            try {
+                const response = await fetch('http://localhost:8000/api/v1/llm/preference');
+                if (response.ok) {
+                    const preference = await response.json();
+                    if (preference.model_id) {
+                        document.getElementById('model-select').value = preference.model_id;
+                    }
+                }
+            } catch (error) {
+                console.error('加载偏好设置失败:', error);
+            }
+        }
+        
+        // 切换服务商状态
+        async function toggleProviderStatus(providerId, status) {
+            try {
+                // 调用后端API
+                const response = await fetch(`http://localhost:8000/api/v1/llm/providers/${providerId}/status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('操作失败');
+                }
+                
+                showSuccess(`服务商${status ? '启用' : '禁用'}成功`);
+                loadProviders();
+            } catch (error) {
+                showError('操作失败');
+                console.error(error);
+            }
+        }
+        
+        // 删除服务商
+        async function deleteProvider(providerId) {
+            if (confirm('确定要删除这个服务商吗？')) {
+                try {
+                    // 调用后端API
+                    const response = await fetch(`http://localhost:8000/api/v1/llm/providers/${providerId}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('删除失败');
+                    }
+                    
+                    showSuccess('服务商删除成功');
+                    loadProviders();
+                } catch (error) {
+                    showError('删除失败');
+                    console.error(error);
+                }
+            }
+        }
+        
+        // 切换模型状态
+        async function toggleModelStatus(modelId, status) {
+            try {
+                // 调用后端API
+                const response = await fetch(`http://localhost:8000/api/v1/llm/models/${modelId}/status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('操作失败');
+                }
+                
+                showSuccess(`模型${status ? '启用' : '禁用'}成功`);
+                loadModels();
+            } catch (error) {
+                showError('操作失败');
+                console.error(error);
+            }
+        }
+        
+        // 删除模型
+        async function deleteModel(modelId) {
+            if (confirm('确定要删除这个模型吗？')) {
+                try {
+                    // 调用后端API
+                    const response = await fetch(`http://localhost:8000/api/v1/llm/models/${modelId}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('删除失败');
+                    }
+                    
+                    showSuccess('模型删除成功');
+                    loadModels();
+                } catch (error) {
+                    showError('删除失败');
+                    console.error(error);
+                }
+            }
+        }
+        
+        // 发送消息
+        async function sendMessage() {
+            const model = document.getElementById('model-select').value;
+            const message = document.getElementById('message-input').value;
+            
+            if (!model) {
+                showError('请选择模型');
+                return;
+            }
+            
+            if (!message) {
+                showError('请输入消息');
+                return;
+            }
+            
+            // 添加用户消息
+            addMessage('user', message);
+            document.getElementById('message-input').value = '';
+            
+            // 显示加载状态
+            addMessage('assistant', '思考中...', true);
+            
+            try {
+                // 调用后端API
+                const response = await fetch('http://localhost:8000/api/v1/llm/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ model_id: model, message: message })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('发送消息失败');
+                }
+                
+                const result = await response.json();
+                
+                // 移除加载消息
+                const chatContainer = document.getElementById('chat-container');
+                chatContainer.removeChild(chatContainer.lastChild);
+                
+                // 添加助手回复
+                addMessage('assistant', result.response);
+                
+                // 保存用户偏好设置
+                saveUserPreference(model);
+            } catch (error) {
+                showError('发送消息失败');
+                console.error(error);
+            }
+        }
+        
+        // 保存用户偏好设置
+        async function saveUserPreference(modelId) {
+            try {
+                // 获取选中模型的服务商信息
+                const selectedOption = document.getElementById('model-select').selectedOptions[0];
+                if (!selectedOption) return;
+                
+                // 调用后端API
+                const response = await fetch('http://localhost:8000/api/v1/llm/preference', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ provider_id: 'default', model_id: modelId })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('保存偏好设置失败');
+                }
+            } catch (error) {
+                console.error('保存偏好设置失败:', error);
+            }
+        }
+        
+        // 添加消息到聊天界面
+        function addMessage(role, content, isLoading = false) {
+            const chatContainer = document.getElementById('chat-container');
+            const messageDiv = document.createElement('div');
+            messageDiv.style.marginBottom = '15px';
+            messageDiv.style.display = 'flex';
+            messageDiv.style.flexDirection = role === 'user' ? 'row-reverse' : 'row';
+            
+            const avatar = document.createElement('div');
+            avatar.style.width = '32px';
+            avatar.style.height = '32px';
+            avatar.style.borderRadius = '50%';
+            avatar.style.backgroundColor = role === 'user' ? '#4CAF50' : '#2196F3';
+            avatar.style.display = 'flex';
+            avatar.style.alignItems = 'center';
+            avatar.style.justifyContent = 'center';
+            avatar.style.color = 'white';
+            avatar.style.fontWeight = 'bold';
+            avatar.textContent = role === 'user' ? '我' : 'AI';
+            
+            const messageContent = document.createElement('div');
+            messageContent.style.maxWidth = '70%';
+            messageContent.style.padding = '10px';
+            messageContent.style.borderRadius = '8px';
+            messageContent.style.backgroundColor = role === 'user' ? '#f1f1f1' : '#e3f2fd';
+            messageContent.style.marginLeft = role === 'user' ? '10px' : '10px';
+            messageContent.style.marginRight = role === 'user' ? '10px' : '10px';
+            messageContent.innerHTML = content.replace(/\n/g, '<br>');
+            
+            if (isLoading) {
+                messageContent.style.fontStyle = 'italic';
+                messageContent.style.color = '#666';
+            }
+            
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(messageContent);
+            chatContainer.appendChild(messageDiv);
+            
+            // 滚动到底部
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        // 显示成功消息
+        function showSuccess(message) {
+            const successMsg = document.getElementById('success-message');
+            document.getElementById('success-text').textContent = message;
+            successMsg.style.display = 'block';
+            setTimeout(() => {
+                successMsg.style.display = 'none';
+            }, 3000);
+        }
+        
+        // 显示错误消息
+        function showError(message) {
+            const errorMsg = document.getElementById('error-message');
+            document.getElementById('error-text').textContent = message;
+            errorMsg.style.display = 'block';
+            setTimeout(() => {
+                errorMsg.style.display = 'none';
+            }, 3000);
+        }
+        
+        // 服务商表单提交
+        document.getElementById('provider-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const id = document.getElementById('provider-id').value;
+            const name = document.getElementById('provider-name').value;
+            const protocol = document.getElementById('provider-protocol').value;
+            const description = document.getElementById('provider-description').value;
+            const apiKey = document.getElementById('provider-api-key').value;
+            const baseUrl = document.getElementById('provider-base-url').value;
+            const status = document.getElementById('provider-status').value === 'true';
+            
+            try {
+                const url = id ? `http://localhost:8000/api/v1/llm/providers/${id}` : 'http://localhost:8000/api/v1/llm/providers';
+                const method = id ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name,
+                        protocol,
+                        description,
+                        config: {
+                            api_key: apiKey,
+                            base_url: baseUrl
+                        },
+                        status
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('操作失败');
+                }
+                
+                showSuccess(id ? '服务商更新成功' : '服务商创建成功');
+                closeProviderModal();
+                loadProviders();
+            } catch (error) {
+                showError('操作失败');
+                console.error(error);
+            }
+        });
+        
+        // 模型表单提交
+        document.getElementById('model-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const id = document.getElementById('model-id').value;
+            const providerId = document.getElementById('model-provider').value;
+            const modelId = document.getElementById('model-model-id').value;
+            const name = document.getElementById('model-name').value;
+            const description = document.getElementById('model-description').value;
+            const endpoint = document.getElementById('model-endpoint').value;
+            const type = document.getElementById('model-type').value;
+            const status = document.getElementById('model-status').value === 'true';
+            
+            try {
+                const url = id ? `http://localhost:8000/api/v1/llm/models/${id}` : 'http://localhost:8000/api/v1/llm/models';
+                const method = id ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        provider_id: providerId,
+                        model_id: modelId,
+                        name,
+                        description,
+                        model_endpoint: endpoint,
+                        type,
+                        status
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('操作失败');
+                }
+                
+                showSuccess(id ? '模型更新成功' : '模型创建成功');
+                closeModelModal();
+                loadModels();
+            } catch (error) {
+                showError('操作失败');
+                console.error(error);
+            }
+        });
+        
+        // 初始化
+        window.onload = function() {
+            loadProviders();
+            loadModels();
+        };
+    </script>
+</body>
+</html>

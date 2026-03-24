@@ -165,16 +165,17 @@
      【修改内容】
         - `POST /api/v1/llm/providers` - 创建服务商
         - `GET /api/v1/llm/providers` - 获取服务商列表
-        - `GET /api/v1/llm/providers/{id}` - 获取服务商详情
-        - `PUT /api/v1/llm/providers/{id}` - 更新服务商
-        - `DELETE /api/v1/llm/providers/{id}` - 删除服务商
-        - `POST /api/v1/llm/providers/{id}/status` - 切换服务商状态
+        - `PUT /api/v1/llm/providers/{provider_id}` - 更新服务商
+        - `DELETE /api/v1/llm/providers/{provider_id}` - 删除服务商
+        - `PATCH /api/v1/llm/providers/{provider_id}/status` - 更新服务商状态
         - `POST /api/v1/llm/models` - 创建模型
-        - `GET /api/v1/llm/models` - 获取模型列表
-        - `PUT /api/v1/llm/models/{id}` - 更新模型
-        - `DELETE /api/v1/llm/models/{id}` - 删除模型
-        - `POST /api/v1/llm/models/{id}/status` - 切换模型状态
+        - `PUT /api/v1/llm/models/{model_id}` - 更新模型
+        - `DELETE /api/v1/llm/models/{model_id}` - 删除模型
+        - `PATCH /api/v1/llm/models/{model_id}/status` - 更新模型状态
         - `GET /api/v1/llm/models/active` - 获取激活的模型
+        - `POST /api/v1/llm/preference` - 保存用户模型偏好设置
+        - `GET /api/v1/llm/preference` - 获取用户模型偏好设置
+        - `POST /api/v1/llm/chat` - 与模型对话
 
 - [ ] 1.14 创建 API 路由 - 管理员 LLM 管理
      【目标对象】`app/api/v1/admin/llm/`

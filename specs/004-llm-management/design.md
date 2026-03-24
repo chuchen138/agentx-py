@@ -10,6 +10,7 @@ LLM 管理模块采用分层架构设计，遵循 DDD（领域驱动设计）原
 - **应用层**：LLMAppService（用户侧）、AdminLLMAppService（管理侧）
 - **领域层**：LLMDomainService、ProviderAggregate、ModelEntity、领域事件
 - **基础设施层**：SQLAlchemy Repository、高可用网关、协议适配器、配置加密
+- **数据模型**：`app/core/models/llm.py`、`app/core/models/llm_preference.py`
 
 ### 分层职责
 
@@ -350,6 +351,38 @@ class ProviderAssembler:
 
 ## 接口定义
 
+### API 端点
+
+#### 服务商管理
+| 方法 | URL | 作用 |
+|------|-----|------|
+| POST | `/api/v1/llm/providers` | 创建服务商 |
+| GET | `/api/v1/llm/providers` | 获取服务商列表 |
+| PUT | `/api/v1/llm/providers/{provider_id}` | 更新服务商 |
+| DELETE | `/api/v1/llm/providers/{provider_id}` | 删除服务商 |
+| PATCH | `/api/v1/llm/providers/{provider_id}/status` | 更新服务商状态 |
+| POST | `/api/v1/llm/providers/{provider_id}/refresh-status` | 刷新服务商状态，测试配置是否可用 |
+
+#### 模型管理
+| 方法 | URL | 作用 |
+|------|-----|------|
+| POST | `/api/v1/llm/models` | 创建模型 |
+| PUT | `/api/v1/llm/models/{model_id}` | 更新模型 |
+| DELETE | `/api/v1/llm/models/{model_id}` | 删除模型 |
+| PATCH | `/api/v1/llm/models/{model_id}/status` | 更新模型状态 |
+| GET | `/api/v1/llm/models/active` | 获取激活的模型 |
+
+#### 用户偏好设置
+| 方法 | URL | 作用 |
+|------|-----|------|
+| POST | `/api/v1/llm/preference` | 保存用户模型偏好设置 |
+| GET | `/api/v1/llm/preference` | 获取用户模型偏好设置 |
+
+#### 模型对话
+| 方法 | URL | 作用 |
+|------|-----|------|
+| POST | `/api/v1/llm/chat` | 与模型对话 |
+
 ### 应用层接口
 
 #### LLMAppService
@@ -371,20 +404,30 @@ class LLMAppService:
     async def update_provider_status(self, provider_id: str, status: bool, user_id: str) -> None:
         pass
     
+    async def refresh_provider_status(self, provider_id: str, user_id: str) -> bool:
+        pass
+    
     # 模型管理
-    async def create_model(self, dto: ModelCreateDTO, user_id: str) -> ModelDTO:
+    async def create_model(self, dto: ModelCreateDTO, user_id: str, background_tasks: BackgroundTasks) -> ModelDTO:
         pass
     
-    async def update_model(self, model_id: str, dto: ModelUpdateDTO, user_id: str) -> ModelDTO:
+    async def update_model(self, model_id: str, dto: ModelUpdateDTO, user_id: str, background_tasks: BackgroundTasks) -> ModelDTO:
         pass
     
-    async def delete_model(self, model_id: str, user_id: str) -> None:
+    async def delete_model(self, model_id: str, user_id: str, background_tasks: BackgroundTasks) -> None:
         pass
     
-    async def update_model_status(self, model_id: str, status: bool, user_id: str) -> None:
+    async def update_model_status(self, model_id: str, status: bool, user_id: str, background_tasks: BackgroundTasks) -> None:
         pass
     
     async def get_active_models_by_type(self, provider_type: ProviderType, model_type: ModelType) -> List[ModelDTO]:
+        pass
+    
+    # 用户偏好设置
+    async def save_user_preference(self, user_id: str, provider_id: str, model_id: str) -> None:
+        pass
+    
+    async def get_user_preference(self, user_id: str) -> dict:
         pass
 ```
 

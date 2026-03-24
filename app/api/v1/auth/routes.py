@@ -13,7 +13,6 @@ from app.core.database import get_db
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 import uuid
-from app.api.v1.auth.auth_settings import router as auth_settings_router
 
 router = APIRouter()
 
