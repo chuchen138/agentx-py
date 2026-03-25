@@ -18,7 +18,7 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 from app.core.database import Base
 from app.domain.user.model import UserModel, UserSettingsModel
-from app.domain.auth_setting.model import AuthSettingModel
+from app.domain.api_key.model import ApiKey
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,

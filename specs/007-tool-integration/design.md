@@ -8,9 +8,15 @@
 
 系统采用四层架构：
 - **Interface Layer（接口层）**：FastAPI 路由，接收外部 HTTP 请求
+  - 路径：`app/api/v1/tools/` - 工具管理 API
+  - 路径：`app/api/v1/admin/tools/` - 管理员工具管理 API
 - **Application Layer（应用层）**：用例编排、业务流程、状态机管理
+  - 路径：`app/application/tool/` - 工具应用服务
 - **Domain Layer（领域层）**：领域模型、业务规则、状态处理器
+  - 路径：`app/domain/tool/` - 领域模型和服务
+  - 路径：`app/domain/tool/state_machine/` - 状态机和处理器
 - **Infrastructure Layer（基础设施层）**：数据库持久化、外部服务集成（Docker、GitHub、MCP）
+  - 路径：`app/infrastructure/dependency_injection.py` - 依赖注入配置
 
 ## 状态机模式设计
 
@@ -31,11 +37,16 @@
 
 ### 状态处理器实现
 
-- **AppWaitingReviewProcessor**：处理等待审核状态，自动触发进入审核流程
-- **AppGithubUrlValidateProcessor**：验证 GitHub URL，存储仓库信息，失败时记录原因
-- **AppDeployingProcessor**：部署工具到审核容器，配置网络和环境变量
-- **AppFetchingToolsProcessor**：从容器中获取并存储工具定义，超时处理
-- **AppManualReviewProcessor**：等待人工审核，不自动流转，支持双人复核
+- **WaitingReviewProcessor**：处理等待审核状态，自动触发进入审核流程
+  - 路径：`app/domain/tool/state_machine/processors/waiting_review_processor.py`
+- **FetchingToolsProcessor**：处理获取工具状态，解析 GitHub URL 或 Zip 包
+  - 路径：`app/domain/tool/state_machine/processors/fetching_tools_processor.py`
+- **GithubUrlValidateProcessor**：验证 GitHub URL，存储仓库信息，失败时记录原因
+  - 路径：`app/domain/tool/state_machine/processors/github_url_validate_processor.py`
+- **DeployingProcessor**：部署工具到审核容器，配置网络和环境变量
+  - 路径：`app/domain/tool/state_machine/processors/deploying_processor.py`
+- **PublishingProcessor**：处理工具发布流程，更新工具状态为已发布
+  - 路径：`app/domain/tool/state_machine/processors/publishing_processor.py`
 
 ### 处理器链执行
 
@@ -46,24 +57,47 @@ ToolStateStateMachineAppService 管理处理器注册和执行，使用字典存
 ### ToolAppService
 
 负责工具 CRUD 操作、工具市场管理（上架、查询、安装、卸载）、工具版本管理和调用状态机进行状态转换。使用依赖注入获取仓储和服务。
+- 路径：`app/application/tool/tool_app_service.py`
+
+### ToolVersionService
+
+负责工具版本管理，包括创建版本、发布版本、回滚版本等操作。
+- 路径：`app/application/tool/tool_app_service.py`
 
 ### ToolStateStateMachineAppService
 
 管理应用层状态处理器注册、提供状态转换统一入口、协调处理器链执行、处理状态机异常和失败。使用 asyncio.Lock 确保并发安全。
+- 路径：`app/application/tool/tool_app_service.py`
+
+### ToolAssembler
+
+负责领域模型和 DTO 之间的转换。
+- 路径：`app/application/tool/assembler.py`
 
 ## 数据模型设计
 
 ### ToolEntity
 
 包含工具 ID、创建者 ID、工具名称、工具描述、GitHub 仓库 URL、工具状态、安装命令、MCP 服务器名称、工具定义列表、仓库信息和失败信息等。
+- 路径：`app/domain/tool/model.py`
 
 ### ToolVersionEntity
 
 包含版本 ID、工具 ID、用户 ID、版本号、公开状态、更新日志、MCP 服务器名称和工具描述等。
+- 路径：`app/domain/tool/model.py`
 
 ### UserToolEntity
 
 包含用户工具 ID、用户 ID、工具 ID、版本号、MCP 服务器名称等。
+- 路径：`app/domain/tool/model.py`
+
+### 枚举类型
+
+- **ToolType**：工具类型，如 MCP
+- **UploadType**：上传类型，如 GITHUB、ZIP
+- **ToolStatus**：工具状态，如 WAITING_REVIEW、FETCHING_TOOLS、GITHUB_URL_VALIDATION、DEPLOYING、PUBLISHING、PUBLISHED、REJECTED
+- **ToolVersionStatus**：版本状态，如 DRAFT、PUBLISHED、ARCHIVED
+- 路径：`app/domain/tool/enums.py`
 
 ## 外部集成接口
 

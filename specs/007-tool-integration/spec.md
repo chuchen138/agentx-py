@@ -438,6 +438,39 @@
 - **计费模块（Account Billing）**：提供付费工具的计费、分账和结算能力
 - **安全扫描服务**：提供代码安全扫描和漏洞检测能力
 
+## API 端点
+
+### 工具管理 API
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| POST | `/api/v1/tools` | 上传工具 |
+| GET | `/api/v1/tools` | 获取用户工具列表（支持分页） |
+| GET | `/api/v1/tools/{id}` | 获取工具详情 |
+| PUT | `/api/v1/tools/{id}` | 更新工具 |
+| DELETE | `/api/v1/tools/{id}` | 删除工具 |
+| GET | `/api/v1/tools/market/list` | 获取工具市场 |
+| POST | `/api/v1/tools/market/install` | 安装市场工具 |
+| POST | `/api/v1/tools/market/uninstall` | 卸载工具 |
+
+### 工具版本管理 API
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/v1/tools/{tool_id}/versions` | 获取工具版本列表 |
+| POST | `/api/v1/tools/{tool_id}/versions` | 创建工具版本 |
+| POST | `/api/v1/tools/versions/{version_id}/publish` | 发布工具版本 |
+| POST | `/api/v1/tools/versions/{version_id}/rollback` | 回滚工具版本 |
+
+### 管理员工具管理 API
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/v1/admin/tools` | 获取所有工具列表 |
+| GET | `/api/v1/admin/tools/pending` | 获取待审核工具列表 |
+| POST | `/api/v1/admin/tools/{tool_id}/review` | 审核工具（通过/拒绝） |
+| GET | `/api/v1/admin/tools/statistics` | 获取工具统计数据 |
+
 ## 技术术语
 
 | 术语 | 说明 |

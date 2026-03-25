@@ -449,9 +449,156 @@ API 密钥管理模块为 AgentX 平台提供完整的 API 密钥生命周期管
 | 熵值 | 随机数的不确定性度量，密钥生成应使用 >= 128 位熵值 |
 | QPS | Queries Per Second，每秒查询率 |
 
-## 10. 附录：示例流程
+## 11. 代码实现思路
 
-### 10.1 创建 API 密钥示例
+### 11.1 架构设计
+
+API Key 管理模块采用分层架构设计，与 AgentX 平台的整体架构保持一致：
+
+**1. 模型层（Domain Model）**
+- `ApiKey` 模型：核心数据模型，包含密钥的所有属性和方法
+- 字段：id、api_key、agent_id、user_id、name、status、usage_count、last_used_at、expires_at、created_at、updated_at
+- 方法：is_expired、is_available、update_usage
+
+**2. 仓库层（Repository）**
+- `ApiKeyRepository`：负责数据库操作
+- 功能：CRUD 操作、按条件查询、唯一性检查
+
+**3. 服务层（Service）**
+- `ApiKeyService`：实现核心业务逻辑
+- 功能：密钥生成、创建、查询、更新、删除、重置、验证
+- 密钥生成：使用 `secrets` 模块生成安全的随机字符串
+- 验证逻辑：检查密钥存在性、状态、过期时间
+
+**4. 应用服务层（Application Service）**
+- `ApiKeyAppService`：处理业务逻辑和数据转换
+- 功能：调用服务层方法，转换数据格式，处理响应
+
+**5. API 层（API Routes）**
+- RESTful API 端点，处理 HTTP 请求和响应
+- 认证：使用 JWT Bearer Token 认证
+- 权限：基于用户 ID 的数据隔离
+
+### 11.2 核心实现细节
+
+**1. 密钥生成**
+- 格式：`ak_{agentId}_{randomString}`
+- 随机字符串：16 位字母数字组合，使用 `secrets` 模块确保安全性
+- 唯一性：通过数据库唯一索引和重复检查确保
+
+**2. 密钥验证**
+- 流程：检查存在性 → 检查状态 → 检查过期时间
+- 成功后：更新使用统计（使用次数 +1，更新最后使用时间）
+- 失败时：返回明确的错误信息，但不暴露敏感细节
+
+**3. 安全措施**
+- 密钥值仅创建和重置时返回明文
+- 查询接口返回脱敏的密钥值
+- 使用 `secrets` 模块生成安全随机数
+- 基于用户 ID 的权限控制
+
+**4. 性能优化**
+- 数据库索引：api_key、agent_id、user_id 字段建立索引
+- 验证操作：毫秒级响应设计
+- 并发处理：使用数据库事务确保统计数据准确性
+
+## 12. API 接口列表
+
+### 12.1 认证要求
+- 所有接口（除验证接口外）需要在请求头中携带 `Authorization: Bearer <token>`
+- 验证接口不需要认证
+
+### 12.2 完整 API 端点
+
+| 方法 | 端点 | 功能 | 请求体 (JSON) | 响应状态码 |
+|------|------|------|-------------|------------|
+| POST | `/api/v1/api-keys` | 创建 API 密钥 | `{"agent_id": "<agent_id>", "name": "<name>"}` | 201 Created |
+| GET | `/api/v1/api-keys` | 获取密钥列表 | N/A | 200 OK |
+| GET | `/api/v1/api-keys?agent_id=<agent_id>` | 按 Agent 筛选 | N/A | 200 OK |
+| GET | `/api/v1/api-keys?name=<name>` | 按名称搜索 | N/A | 200 OK |
+| GET | `/api/v1/api-keys/<api_key_id>` | 获取密钥详情 | N/A | 200 OK |
+| PUT | `/api/v1/api-keys/<api_key_id>` | 更新密钥信息 | `{"name": "<name>", "status": <boolean>}` | 200 OK |
+| PUT | `/api/v1/api-keys/<api_key_id>/status` | 更新密钥状态 | `{"status": <boolean>}` | 200 OK |
+| POST | `/api/v1/api-keys/<api_key_id>/reset` | 重置密钥 | N/A | 200 OK |
+| DELETE | `/api/v1/api-keys/<api_key_id>` | 删除密钥 | N/A | 204 No Content |
+| POST | `/api/v1/api-keys/validate?api_key=<api_key>` | 验证密钥 | N/A | 200 OK |
+
+### 12.3 请求参数说明
+
+**创建密钥请求参数**：
+- `agent_id`：Agent 的唯一标识符（必需）
+- `name`：密钥名称/描述（必需，1-100 字符）
+
+**更新密钥请求参数**：
+- `name`：新的密钥名称（可选）
+- `status`：新的密钥状态（可选，布尔值）
+
+**更新状态请求参数**：
+- `status`：密钥状态（必需，布尔值）
+
+### 12.4 响应格式
+
+**创建/更新密钥响应**：
+```json
+{
+  "id": "<api_key_id>",
+  "api_key": "<api_key_value>",  // 仅创建时返回
+  "agent_id": "<agent_id>",
+  "agent_name": "<agent_name>",
+  "user_id": "<user_id>",
+  "name": "<name>",
+  "status": <boolean>,
+  "usage_count": <integer>,
+  "last_used_at": "<datetime>",
+  "expires_at": "<datetime>",
+  "is_expired": <boolean>,
+  "is_available": <boolean>,
+  "created_at": "<datetime>",
+  "updated_at": "<datetime>"
+}
+```
+
+**密钥列表响应**：
+```json
+[
+  {
+    "id": "<api_key_id>",
+    "api_key": "<masked_api_key>",  // 脱敏显示
+    "agent_id": "<agent_id>",
+    "agent_name": "<agent_name>",
+    "name": "<name>",
+    "status": <boolean>,
+    "usage_count": <integer>,
+    "last_used_at": "<datetime>",
+    "is_expired": <boolean>,
+    "is_available": <boolean>,
+    "created_at": "<datetime>"
+  }
+]
+```
+
+**重置密钥响应**：
+```json
+{
+  "id": "<api_key_id>",
+  "new_api_key": "<new_api_key_value>",
+  "message": "API key reset successfully"
+}
+```
+
+**验证密钥响应**：
+```json
+{
+  "valid": <boolean>,
+  "user_id": "<user_id>",
+  "agent_id": "<agent_id>",
+  "message": "<message>"
+}
+```
+
+## 13. 附录：示例流程
+
+### 13.1 创建 API 密钥示例
 
 **请求**：
 ```http
@@ -487,7 +634,7 @@ Authorization: Bearer <user_token>
 
 **注意**：`api_key` 字段仅在创建时返回一次，后续无法查看明文。
 
-### 10.2 使用 API 密钥调用 Agent 示例
+### 13.2 使用 API 密钥调用 Agent 示例
 
 **请求**：
 ```http
@@ -519,7 +666,7 @@ X-API-Key: ak_agent_123_a3f5c8d9e2b1f4a6
 }
 ```
 
-### 10.3 密钥轮换示例
+### 13.3 密钥轮换示例
 
 **场景**：定期安全轮换密钥
 
@@ -553,7 +700,7 @@ X-API-Key: ak_agent_123_a3f5c8d9e2b1f4a6
    DELETE /api/v1/api-keys/old_key_id
    ```
 
-### 10.4 密钥泄露应急处理示例
+### 13.4 密钥泄露应急处理示例
 
 **场景**：检测到密钥异常调用
 

@@ -308,3 +308,99 @@ DocumentProcessingFactory 根据文件扩展名自动选择对应的处理策略
 - 记录关键操作的 trace_id 和 span_id
 - 与日志系统集成（结构化日志）
 - 支持链路查询和性能分析
+
+## API 接口
+
+### 访问地址
+- **应用根路径**: `http://localhost:8000/`
+- **API 文档**: `http://localhost:8000/docs`
+- **健康检查**: `http://localhost:8000/health`
+
+### 核心 API 端点
+
+#### 1. 数据集管理
+
+| 操作 | 方法 | URL | 描述 |
+|------|------|-----|------|
+| 创建数据集 | POST | `/api/rag/datasets` | 创建新的RAG数据集 |
+| 列出数据集 | GET | `/api/rag/datasets` | 列出用户的所有数据集 |
+| 获取数据集 | GET | `/api/rag/datasets/{dataset_id}` | 获取特定数据集详情 |
+| 更新数据集 | PUT | `/api/rag/datasets/{dataset_id}` | 更新数据集信息 |
+| 删除数据集 | DELETE | `/api/rag/datasets/{dataset_id}` | 删除数据集 |
+
+#### 2. 文档管理
+
+| 操作 | 方法 | URL | 描述 |
+|------|------|-----|------|
+| 上传文档 | POST | `/api/rag/datasets/{dataset_id}/documents` | 上传文档到指定数据集 |
+| 列出文档 | GET | `/api/rag/datasets/{dataset_id}/documents` | 列出数据集中的所有文档 |
+| 获取文档 | GET | `/api/rag/documents/{document_id}` | 获取特定文档详情 |
+| 删除文档 | DELETE | `/api/rag/documents/{document_id}` | 删除文档 |
+| 重新处理文档 | POST | `/api/rag/documents/{document_id}/reprocess` | 重新处理文档 |
+
+#### 3. 文档单元管理
+
+| 操作 | 方法 | URL | 描述 |
+|------|------|-----|------|
+| 列出文档单元 | GET | `/api/rag/documents/{document_id}/units` | 列出文档的所有单元 |
+| 获取文档单元 | GET | `/api/rag/units/{unit_id}` | 获取特定文档单元详情 |
+| 更新文档单元 | PUT | `/api/rag/units/{unit_id}` | 更新文档单元内容 |
+| 重新向量化 | POST | `/api/rag/units/{unit_id}/reembed` | 重新向量化文档单元 |
+
+#### 4. 版本管理
+
+| 操作 | 方法 | URL | 描述 |
+|------|------|-----|------|
+| 创建版本 | POST | `/api/rag/datasets/{dataset_id}/versions` | 创建数据集版本 |
+| 列出版本 | GET | `/api/rag/datasets/{dataset_id}/versions` | 列出数据集的所有版本 |
+| 获取版本 | GET | `/api/rag/versions/{version_id}` | 获取特定版本详情 |
+| 提交审核 | POST | `/api/rag/versions/{version_id}/submit` | 提交版本审核 |
+| 审核版本 | POST | `/api/rag/versions/{version_id}/review` | 审核版本 |
+| 列出已发布版本 | GET | `/api/rag/market/versions` | 列出市场中已发布的版本 |
+
+#### 5. 检索功能
+
+| 操作 | 方法 | URL | 描述 |
+|------|------|-----|------|
+| 执行检索 | POST | `/api/rag/search` | 执行RAG检索 |
+
+## 启动命令
+
+```bash
+# 安装依赖
+pip install -r requirements.txt
+
+# 启动应用
+uvicorn app.main:app --reload
+```
+
+## 示例 curl 命令
+
+### 创建数据集
+```bash
+curl -X POST "http://localhost:8000/api/rag/datasets" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "name=技术文档&description=包含技术相关文档"
+```
+
+### 上传文档
+```bash
+curl -X POST "http://localhost:8000/api/rag/datasets/{dataset_id}/documents" \
+  -F "file=@path/to/document.pdf"
+```
+
+### 执行检索
+```bash
+curl -X POST "http://localhost:8000/api/rag/search" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "如何使用 Python 连接 PostgreSQL 数据库",
+    "dataset_ids": ["dataset_001", "dataset_002"],
+    "search_type": "HYBRID",
+    "top_k": 10,
+    "similarity_threshold": 0.7,
+    "use_rerank": true,
+    "rerank_top_k": 5,
+    "use_hyde": false
+  }'
+```
