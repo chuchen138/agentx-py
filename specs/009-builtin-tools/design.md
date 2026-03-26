@@ -592,6 +592,20 @@ class CustomToolProvider(BuiltInToolProvider):
 ### 热注册工具
 
 **API 端点**：
+
+### 工具管理 API
+
+| 端点 | 方法 | 描述 |
+|------|------|------|
+| `/api/v1/tools/builtin/list` | GET | 列出所有内置工具 |
+| `/api/v1/tools/builtin/{tool_name}` | GET | 获取工具详细信息 |
+| `/api/v1/tools/builtin/execute/{tool_name}` | POST | 执行内置工具 |
+| `/api/v1/tools/builtin/execute/batch` | POST | 批量执行内置工具 |
+| `/api/v1/tools/builtin/{tool_name}/disable` | POST | 禁用内置工具 |
+| `/api/v1/tools/builtin/{tool_name}/enable` | POST | 启用内置工具 |
+| `/api/v1/tools/builtin/register` | POST | 热注册工具 |
+
+**注册工具 API 实现**：
 ```python
 @app.post("/api/v1/tools/builtin/register")
 async def register_tool(tool_def: ToolDefinition):

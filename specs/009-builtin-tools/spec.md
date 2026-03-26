@@ -81,7 +81,7 @@
 - **工具描述**（description）：工具的功能描述（字符串，必填）
 - **输入参数**（parameters）：工具所需的参数定义（Pydantic 模型或 JSON Schema）
 - **返回值**（output）：工具返回的数据结构定义（Pydantic 模型或 JSON Schema）
-- **工具类型**（type）：工具的类型分类（枚举：RAG_SEARCH、FILE_OPERATION、DATA_PROCESSING、SYSTEM）
+- **工具类型**（tool_type）：工具的类型分类（枚举：RAG_SEARCH、FILE_OPERATION、DATA_PROCESSING、SYSTEM）
 - **工具标签**（tags）：工具的标签列表，用于分类和搜索（如 ["rag", "search", "vector"]）
 - **工具权限**（permission）：工具需要的权限级别（枚举：PUBLIC、USER、ADMIN）
 - **提供者标识**（provider_id）：工具的提供者 ID
@@ -98,7 +98,7 @@
 {
   "name": "rag_search",
   "description": "基于向量相似度的知识库检索",
-  "type": "RAG_SEARCH",
+  "tool_type": "RAG_SEARCH",
   "version": "1.0.0",
   "provider_id": "rag_builtin_provider",
   "tags": ["rag", "search", "vector"],
@@ -358,7 +358,7 @@ class RagSearchResult(BaseModel):
 class RagSearchToolDefinition(BaseModel):
     name: str = "rag_search"
     description: str = "基于向量相似度的知识库检索"
-    type: ToolType = ToolType.RAG_SEARCH
+    tool_type: ToolType = ToolType.RAG_SEARCH
     version: str = "1.0.0"
     provider_id: str = "rag_builtin_provider"
     tags: List[str] = ["rag", "search", "vector"]
@@ -382,7 +382,7 @@ class FileReadResult(BaseModel):
 class FileReadToolDefinition(BaseModel):
     name: str = "file_read"
     description: str = "读取文件内容"
-    type: ToolType = ToolType.FILE_OPERATION
+    tool_type: ToolType = ToolType.FILE_OPERATION
     version: str = "1.0.0"
     provider_id: str = "system_builtin_provider"
     tags: List[str] = ["file", "read", "io"]
