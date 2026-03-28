@@ -16,6 +16,7 @@
 - **消息队列**：RabbitMQ / Redis Streams（异步通知和日志）
 - **认证**：JWT（PyJWT 库）
 - **密码加密**：bcrypt
+- **智能体框架**：LangChain（智能体编排和工具集成）
 
 ### 架构分层
 
@@ -44,7 +45,7 @@
 - **Interfaces Layer**：处理外部请求（HTTP API、WebSocket），参数校验，身份认证，响应格式化
 - **Application Layer**：编排业务流程，调用领域服务，DTO 转换，事务管理
 - **Domain Layer**：封装核心业务逻辑，定义领域模型和业务规则，不依赖外部依赖
-- **Infrastructure Layer**：提供技术实现（数据库持久化、缓存、消息队列、第三方 API 集成）
+- **Infrastructure Layer**：提供技术实现（数据库持久化、缓存、消息队列、第三方 API 集成、LangChain 智能体编排）
 
 ## 领域模型设计
 
@@ -653,10 +654,12 @@ REMOVED --> PUBLISHED（重新上架）
 - 工具注册表（tools_registry 表）
 - 工具适配器模式（ToolAdapter 接口）
 - 动态加载新工具类型
+- LangChain 工具集成：支持将自定义工具包装为 LangChain 兼容的工具
 
 **知识库类型扩展**：
 - 知识库适配器接口（KnowledgeBaseAdapter）
 - 支持接入不同类型知识库（向量数据库、传统数据库、API 等）
+- LangChain 文档加载器集成：利用 LangChain 的文档加载和处理能力
 
 **Widget 类型扩展**：
 - Widget 渲染模板机制
@@ -669,6 +672,25 @@ REMOVED --> PUBLISHED（重新上架）
 - LLM 模型参数支持动态新增
 - Token 溢出策略支持自定义实现
 - 系统限制可通过配置文件调整
+
+### LangChain 集成
+
+**核心组件**：
+- **LangChain Agent**：基于 LLM 的智能体，负责决策和执行
+- **Toolkit**：工具集合，封装外部服务调用能力
+- **Memory**：会话记忆，管理对话上下文
+- **Chains**：任务链，实现复杂的工作流程
+
+**集成方式**：
+- 在基础设施层创建 LangChain 适配器
+- 领域服务通过适配器调用 LangChain 功能
+- 保持领域模型与 LangChain 实现解耦
+
+**优势**：
+- 简化工具集成和管理
+- 提供成熟的智能体编排能力
+- 支持复杂的任务链和工作流
+- 内置记忆管理和上下文处理
 
 ## 审计与监控
 

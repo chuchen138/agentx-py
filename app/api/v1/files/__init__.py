@@ -1,3 +1,3 @@
-from app.api.v1.files.files import router
+from .files import router
 
 __all__ = ["router"]

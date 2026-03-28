@@ -5,63 +5,11 @@ from app.application.rag.rag_app_service import (
 )
 from app.application.file.service.file_storage_app_service import FileStorageAppService
 from app.application.file.strategy.rag_file_storage_strategy import RagFileStorageStrategy
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.infrastructure.database.session import get_db
-from app.domain.tool.repository import SQLAlchemyToolRepository, SQLAlchemyToolVersionRepository, SQLAlchemyUserToolRepository
 from app.domain.tool.service import ToolDomainService, ToolVersionDomainService, UserToolDomainService
 from app.application.tool.tool_app_service import ToolAppService, ToolVersionService, ToolStateStateMachineAppService
 
 
-async def get_tool_repository(db: AsyncSession = Depends(get_db)):
-    return SQLAlchemyToolRepository(db)
 
-
-async def get_tool_version_repository(db: AsyncSession = Depends(get_db)):
-    return SQLAlchemyToolVersionRepository(db)
-
-
-async def get_user_tool_repository(db: AsyncSession = Depends(get_db)):
-    return SQLAlchemyUserToolRepository(db)
-
-
-async def get_tool_domain_service(tool_repository = Depends(get_tool_repository)):
-    return ToolDomainService(tool_repository)
-
-
-async def get_tool_version_domain_service(
-    tool_version_repository = Depends(get_tool_version_repository),
-    tool_repository = Depends(get_tool_repository)
-):
-    return ToolVersionDomainService(tool_version_repository, tool_repository)
-
-
-async def get_user_tool_domain_service(
-    user_tool_repository = Depends(get_user_tool_repository),
-    tool_repository = Depends(get_tool_repository)
-):
-    return UserToolDomainService(user_tool_repository, tool_repository)
-
-
-async def get_tool_state_machine_app_service(tool_domain_service = Depends(get_tool_domain_service)):
-    return ToolStateStateMachineAppService(tool_domain_service)
-
-
-async def get_tool_app_service(
-    tool_domain_service = Depends(get_tool_domain_service),
-    tool_version_domain_service = Depends(get_tool_version_domain_service),
-    user_tool_domain_service = Depends(get_user_tool_domain_service),
-    tool_state_machine_app_service = Depends(get_tool_state_machine_app_service)
-):
-    return ToolAppService(
-        tool_domain_service,
-        tool_version_domain_service,
-        user_tool_domain_service,
-        tool_state_machine_app_service
-    )
-
-
-async def get_tool_version_service(tool_version_domain_service = Depends(get_tool_version_domain_service)):
-    return ToolVersionService(tool_version_domain_service)
 
 
 async def get_rag_services():

@@ -1,9 +1,9 @@
 from fastapi import APIRouter
-from app.api.v1.files import router as files_router
-from app.api.v1.llm import llm_router
-from app.api.v1.admin.llm import admin_llm_router
-from app.api.v1.api_key.routes import router as api_key_router
-from app.api.v1.rag.routes import router as rag_router
+from .files import router as files_router
+from .llm import llm_router
+from .admin.llm import admin_llm_router
+from .api_key.routes import router as api_key_router
+from .rag.routes import router as rag_router
 
 api_router = APIRouter()
 

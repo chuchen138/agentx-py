@@ -1,7 +1,7 @@
-from app.application.file.strategy.file_storage_strategy import FileStorageStrategy
-from app.application.file.strategy.avatar_file_storage_strategy import AvatarFileStorageStrategy
-from app.application.file.strategy.general_file_storage_strategy import GeneralFileStorageStrategy
-from app.application.file.strategy.rag_file_storage_strategy import RagFileStorageStrategy
+from .file_storage_strategy import FileStorageStrategy
+from .avatar_file_storage_strategy import AvatarFileStorageStrategy
+from .general_file_storage_strategy import GeneralFileStorageStrategy
+from .rag_file_storage_strategy import RagFileStorageStrategy
 
 __all__ = [
     "FileStorageStrategy",

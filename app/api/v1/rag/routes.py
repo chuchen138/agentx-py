@@ -10,12 +10,12 @@ from app.domain.rag.model import (
 )
 from app.infrastructure.dependency_injection import get_rag_services
 from app.api.middleware.auth import get_current_user
-from app.domain.user.model import User
+from app.domain.user.model import UserModel as User
 
 router = APIRouter(prefix="/rag", tags=["rag"])
 
 
-@router.post("/datasets", response_model=RagDataset)
+@router.post("/datasets", response_model=None)
 def create_dataset(
     name: str = Form(...),
     description: str = Form(...),
@@ -31,7 +31,7 @@ def create_dataset(
     )
 
 
-@router.get("/datasets", response_model=List[RagDataset])
+@router.get("/datasets", response_model=None)
 def list_datasets(
     current_user: User = Depends(get_current_user),
     services = Depends(get_rag_services)
@@ -41,7 +41,7 @@ def list_datasets(
     return dataset_service.list_datasets(user_id=current_user.id)
 
 
-@router.get("/datasets/{dataset_id}", response_model=RagDataset)
+@router.get("/datasets/{dataset_id}", response_model=None)
 def get_dataset(
     dataset_id: str,
     current_user: User = Depends(get_current_user),
@@ -55,7 +55,7 @@ def get_dataset(
     return dataset
 
 
-@router.put("/datasets/{dataset_id}", response_model=RagDataset)
+@router.put("/datasets/{dataset_id}", response_model=None)
 def update_dataset(
     dataset_id: str,
     name: Optional[str] = Form(None),
@@ -87,7 +87,7 @@ def delete_dataset(
     return {"message": "Dataset deleted successfully"}
 
 
-@router.post("/datasets/{dataset_id}/documents", response_model=RagDocument)
+@router.post("/datasets/{dataset_id}/documents", response_model=None)
 def upload_document(
     dataset_id: str,
     file: UploadFile = File(...),
@@ -106,7 +106,7 @@ def upload_document(
     )
 
 
-@router.get("/datasets/{dataset_id}/documents", response_model=List[RagDocument])
+@router.get("/datasets/{dataset_id}/documents", response_model=None)
 def list_documents(
     dataset_id: str,
     current_user: User = Depends(get_current_user),
@@ -117,7 +117,7 @@ def list_documents(
     return document_service.list_documents(dataset_id, current_user.id)
 
 
-@router.get("/documents/{document_id}", response_model=RagDocument)
+@router.get("/documents/{document_id}", response_model=None)
 def get_document(
     document_id: str,
     current_user: User = Depends(get_current_user),
@@ -145,7 +145,7 @@ def delete_document(
     return {"message": "Document deleted successfully"}
 
 
-@router.post("/documents/{document_id}/reprocess", response_model=RagDocument)
+@router.post("/documents/{document_id}/reprocess", response_model=None)
 def reprocess_document(
     document_id: str,
     current_user: User = Depends(get_current_user),
@@ -156,7 +156,7 @@ def reprocess_document(
     return document_service.reprocess_document(document_id, current_user.id)
 
 
-@router.get("/documents/{document_id}/units", response_model=List[DocumentUnit])
+@router.get("/documents/{document_id}/units", response_model=None)
 def list_document_units(
     document_id: str,
     current_user: User = Depends(get_current_user),
@@ -167,7 +167,7 @@ def list_document_units(
     return unit_service.list_document_units(document_id, current_user.id)
 
 
-@router.get("/units/{unit_id}", response_model=DocumentUnit)
+@router.get("/units/{unit_id}", response_model=None)
 def get_document_unit(
     unit_id: str,
     current_user: User = Depends(get_current_user),
@@ -181,7 +181,7 @@ def get_document_unit(
     return unit
 
 
-@router.put("/units/{unit_id}", response_model=DocumentUnit)
+@router.put("/units/{unit_id}", response_model=None)
 def update_document_unit(
     unit_id: str,
     content: str = Form(...),
@@ -193,7 +193,7 @@ def update_document_unit(
     return unit_service.update_document_unit(unit_id, current_user.id, content)
 
 
-@router.post("/units/{unit_id}/reembed", response_model=DocumentUnit)
+@router.post("/units/{unit_id}/reembed", response_model=None)
 def reembed_document_unit(
     unit_id: str,
     current_user: User = Depends(get_current_user),
@@ -204,7 +204,7 @@ def reembed_document_unit(
     return unit_service.reembed_document_unit(unit_id, current_user.id)
 
 
-@router.post("/datasets/{dataset_id}/versions", response_model=RagVersion)
+@router.post("/datasets/{dataset_id}/versions", response_model=None)
 def create_version(
     dataset_id: str,
     version: str = Form(...),
@@ -222,7 +222,7 @@ def create_version(
     )
 
 
-@router.get("/datasets/{dataset_id}/versions", response_model=List[RagVersion])
+@router.get("/datasets/{dataset_id}/versions", response_model=None)
 def list_versions(
     dataset_id: str,
     current_user: User = Depends(get_current_user),
@@ -233,7 +233,7 @@ def list_versions(
     return version_service.list_versions(dataset_id, current_user.id)
 
 
-@router.get("/versions/{version_id}", response_model=RagVersion)
+@router.get("/versions/{version_id}", response_model=None)
 def get_version(
     version_id: str,
     current_user: User = Depends(get_current_user),
@@ -247,7 +247,7 @@ def get_version(
     return version
 
 
-@router.post("/versions/{version_id}/submit", response_model=RagVersion)
+@router.post("/versions/{version_id}/submit", response_model=None)
 def submit_version(
     version_id: str,
     current_user: User = Depends(get_current_user),
@@ -258,7 +258,7 @@ def submit_version(
     return version_service.submit_for_review(version_id, current_user.id)
 
 
-@router.post("/versions/{version_id}/review", response_model=RagVersion)
+@router.post("/versions/{version_id}/review", response_model=None)
 def review_version(
     version_id: str,
     status: str = Form(...),
@@ -276,7 +276,7 @@ def review_version(
     )
 
 
-@router.get("/market/versions", response_model=List[RagVersion])
+@router.get("/market/versions", response_model=None)
 def list_published_versions(
     services = Depends(get_rag_services)
 ):
@@ -285,11 +285,23 @@ def list_published_versions(
     return version_service.list_published_versions()
 
 
-@router.post("/search", response_model=RagSearchResponse)
+@router.post("/search", response_model=None)
 def search(
-    search_request: RagSearchRequest,
+    search_request: dict,
     services = Depends(get_rag_services)
 ):
     """执行RAG检索"""
     search_service = services["search_service"]
-    return search_service.search(search_request)
+    # 转换为 RagSearchRequest 对象
+    from app.domain.rag.model import RagSearchRequest, SearchType
+    rag_search_request = RagSearchRequest(
+        query=search_request.get("query"),
+        dataset_ids=search_request.get("dataset_ids"),
+        search_type=SearchType(search_request.get("search_type")) if search_request.get("search_type") else SearchType.HYBRID,
+        top_k=search_request.get("top_k", 10),
+        similarity_threshold=search_request.get("similarity_threshold", 0.7),
+        use_rerank=search_request.get("use_rerank", False),
+        rerank_top_k=search_request.get("rerank_top_k", 5),
+        use_hyde=search_request.get("use_hyde", False)
+    )
+    return search_service.search(rag_search_request)

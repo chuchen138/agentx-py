@@ -1,7 +1,7 @@
-from app.domain.file.file_record import FileRecord
-from app.domain.file.file_type import FileType
-from app.domain.file.storage_backend_type import StorageBackendType
-from app.domain.file.schemas import (
+from .file_record import FileRecord
+from .file_type import FileType
+from .storage_backend_type import StorageBackendType
+from .schemas import (
     FileRecordBase,
     FileRecordCreate,
     FileRecordUpdate,
