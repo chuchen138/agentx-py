@@ -1,12 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api.v1.auth.routes import router as auth_router
-from api.v1.users.routes import router as users_router
-from api import api_router as file_router
-from api.v1.llm.routes import router as llm_router
-from api.v1.admin.llm.routes import router as admin_llm_router
-from api.v1.agent.routes import router as agent_router
-from core.database import create_tables
+from app.api.v1.auth.routes import router as auth_router
+from app.api.v1.users.routes import router as users_router
+from app.api.v1 import api_router as file_router
+from app.api.v1.llm.routes import router as llm_router
+from app.api.v1.admin.llm.routes import router as admin_llm_router
+from app.api.v1.agent.routes import router as agent_router
+from app.core.database import create_tables
 
 # 创建数据库表
 create_tables()

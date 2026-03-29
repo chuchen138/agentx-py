@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.mysql import JSON
 from datetime import datetime
 from app.core.database import Base
+from app.domain.user.model import UUID
 from app.domain.tool.enums import ToolType, UploadType, ToolStatus
 
 
@@ -14,7 +15,7 @@ class ToolEntity(Base):
     icon = Column(String(255), nullable=True)
     subtitle = Column(String(255), nullable=True)
     description = Column(Text, nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    user_id = Column(UUID, ForeignKey("users.id"), nullable=False, index=True)
     labels = Column(JSON, nullable=True, default=[])
     tool_type = Column(String(50), nullable=False, default=ToolType.MCP.value)
     upload_type = Column(String(50), nullable=False, default=UploadType.GITHUB.value)
@@ -53,7 +54,7 @@ class UserToolEntity(Base):
     __tablename__ = "user_tools"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    user_id = Column(UUID, ForeignKey("users.id"), nullable=False, index=True)
     tool_id = Column(Integer, ForeignKey("tools.id"), nullable=False, index=True)
     installed_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
