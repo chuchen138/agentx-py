@@ -355,6 +355,102 @@ importance_score ∈ [0, 1]（记忆的重要性评分）
 - 重复率异常（>30% 的记忆重复）→ P3 告警（提示优化 Prompt）
 - 检索延迟 P95 > 1s → P2 告警（提示优化索引）
 
+## API 接口设计
+
+**手动创建记忆**
+- **接口**：`POST /api/v1/memories`
+- **请求参数**：
+  ```json
+  {
+    "type": "PROFILE",
+    "text": "用户偏好简体中文回答",
+    "importance": 0.9,
+    "tags": ["preference"],
+    "data": {}
+  }
+  ```
+- **响应数据**：
+  ```json
+  "uuid"
+  ```
+
+**分页列出用户记忆**
+- **接口**：`GET /api/v1/memories`
+- **请求参数**：
+  - `page`：页码，默认 1
+  - `pageSize`：每页大小，默认 20，最大 100
+  - `type`：记忆类型（可选）
+  - `tags`：标签列表（可选）
+  - `importanceMin`：最小重要性（可选）
+- **响应数据**：
+  ```json
+  {
+    "records": [
+      {
+        "id": "uuid",
+        "user_id": "user_uuid",
+        "type": "PROFILE",
+        "text": "用户偏好简体中文回答",
+        "data": {},
+        "importance": 0.9,
+        "tags": ["preference"],
+        "source_session_id": "session_uuid",
+        "status": 1,
+        "created_at": "2025-01-15T10:00:00Z",
+        "updated_at": "2025-01-15T10:00:00Z"
+      }
+    ],
+    "total": 100,
+    "size": 20,
+    "current": 1
+  }
+  ```
+
+**获取记忆详情**
+- **接口**：`GET /api/v1/memories/{itemId}`
+- **响应数据**：
+  ```json
+  {
+    "id": "uuid",
+    "user_id": "user_uuid",
+    "type": "PROFILE",
+    "text": "用户偏好简体中文回答",
+    "data": {},
+    "importance": 0.9,
+    "tags": ["preference"],
+    "source_session_id": "session_uuid",
+    "status": 1,
+    "created_at": "2025-01-15T10:00:00Z",
+    "updated_at": "2025-01-15T10:00:00Z"
+  }
+  ```
+
+**归档（软删除）记忆**
+- **接口**：`DELETE /api/v1/memories/{itemId}`
+- **响应数据**：
+  ```json
+  true
+  ```
+
+**搜索记忆**
+- **接口**：`GET /api/v1/memories/search`
+- **请求参数**：
+  - `query`：搜索查询（必填）
+  - `topK`：返回结果数量，默认 16，最大 100
+- **响应数据**：
+  ```json
+  [
+    {
+      "itemId": "uuid",
+      "type": "PROFILE",
+      "text": "用户偏好简体中文回答",
+      "importance": 0.9,
+      "tags": ["preference"],
+      "score": 0.95
+    }
+  ]
+  ```
+
 ## 与其他模块的集成
 
 **与会话上下文模块（011）集成**：
