@@ -18,6 +18,52 @@ Agent 工作流采用状态机与事件总线结合的架构，实现复杂任�
 
 **注意**：所有状态变更和任务数据都实时同步到 018-task-management 模块进行持久化，本模块仅维护内存中的运行时状态。
 
+### 代码结构
+
+```
+app/
+├── domain/workflow/
+│   ├── model/           # 数据模型
+│   │   ├── workflow.py        # 工作流模型
+│   │   ├── task.py            # 任务模型
+│   │   ├── workflow_event.py  # 工作流事件模型
+│   │   ├── summary.py         # 摘要模型
+│   │   └── schemas.py         # Pydantic Schema
+│   ├── constant/        # 常量和枚举
+│   │   ├── workflow_state.py  # 工作流状态枚举
+│   │   ├── task_status.py     # 任务状态枚举
+│   │   ├── task_type.py       # 任务类型枚举
+│   │   └── event_type.py      # 事件类型枚举
+│   ├── repository.py     # 仓储接口和实现
+│   ├── state_machine.py   # 状态机
+│   ├── event_bus.py       # 事件总线
+│   ├── task_manager.py    # 任务管理器
+│   ├── retry.py           # 重试策略
+│   ├── saga.py            # Saga协调器
+│   └── handlers/          # 处理器
+│       ├── task_split.py      # 任务拆分处理器
+│       ├── task_execution.py  # 任务执行处理器
+│       └── summarize.py       # 摘要生成处理器
+├── application/workflow/  # 应用服务
+│   ├── workflow_app_service.py   # 工作流应用服务
+│   ├── task_app_service.py       # 任务应用服务
+│   ├── summary_app_service.py     # 摘要应用服务
+│   ├── workflow_config_service.py # 配置服务
+│   └── listener.py                # 事件监听器
+├── api/v1/workflow/       # API路由
+│   ├── workflow_routes.py  # 工作流管理路由
+│   ├── task_routes.py      # 任务管理路由
+│   ├── summary_routes.py    # 摘要管理路由
+│   └── event_routes.py      # 工作流事件路由
+└── infrastructure/         # 基础设施
+    ├── config/             # 配置
+    │   └── workflow_config.py  # 工作流配置
+    ├── concurrent/         # 并发
+    │   └── workflow_thread_pool.py  # 线程池管理
+    └── scheduler/          # 调度
+        └── workflow_cleanup_scheduler.py  # 定时清理调度器
+```
+
 ### 核心组件
 
 #### AgentMessageHandler

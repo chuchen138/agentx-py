@@ -9,7 +9,7 @@
 
 ### 1. 数据模型层
 
-- [ ] 1.1 定义工作流实体和数据模型
+- [x] 1.1 定义工作流实体和数据模型
      【目标对象】`app/domain/workflow/model/`
      【修改目的】定义 Agent 工作流相关的领域模型
      【修改方式】使用 SQLAlchemy 定义 ORM 模型
@@ -33,7 +33,7 @@
           * WorkflowEventDTO
           * SummaryDTO
 
-- [ ] 1.2 实现工作流状态枚举
+- [x] 1.2 实现工作流状态枚举
      【目标对象】`app/domain/workflow/constant/`
      【修改目的】定义工作流状态
      【修改方式】使用 Python Enum
@@ -49,7 +49,7 @@
           * FAILED - 失败
         - 实现状态转换验证逻辑
 
-- [ ] 1.3 实现任务状态枚举
+- [x] 1.3 实现任务状态枚举
      【目标对象】`app/domain/workflow/constant/`
 
      【修改目的】定义任务状态
@@ -64,7 +64,7 @@
           * CANCELLED - 已取消
         - 实现状态转换逻辑
 
-- [ ] 1.4 实现任务类型枚举
+- [x] 1.4 实现任务类型枚举
      【目标对象】`app/domain/workflow/constant/`
      【修改目的】定义任务类型
      【修改方式】使用 Python Enum
@@ -81,7 +81,7 @@
 
 ### 2. 仓储层
 
-- [ ] 2.1 实现工作流仓储模式
+- [x] 2.1 实现工作流仓储模式
      【目标对象】`app/domain/workflow/repository.py`
      【修改目的】定义工作流数据访问接口
      【修改方式】实现 Repository 模式
@@ -99,7 +99,7 @@
           * fail_workflow(workflow_id, error_message)
           * delete(workflow_id)
 
-- [ ] 2.2 实现任务仓储模式
+- [x] 2.2 实现任务仓储模式
      【目标对象】`app/domain/workflow/repository.py`
      【修改目的】定义任务数据访问接口
      【修改方式】实现 Repository 模式
@@ -117,7 +117,7 @@
           * increment_retry(task_id)
           * count_by_workflow(workflow_id) -> int
 
-- [ ] 2.3 实现事件仓储模式
+- [x] 2.3 实现事件仓储模式
      【目标对象】`app/domain/workflow/repository.py`
      【修改目的】定义工作流事件数据访问接口
      【修改方式】实现 Repository 模式
@@ -130,7 +130,7 @@
           * get_by_event_type(event_type, limit) -> List[WorkflowEvent]
           * clear_events(workflow_id)
 
-- [ ] 2.4 实现摘要仓储模式
+- [x] 2.4 实现摘要仓储模式
      【目标对象】`app/domain/workflow/repository.py`
      【修改目的】定义摘要数据访问接口
      【修改方式】实现 Repository 模式
@@ -145,7 +145,7 @@
 
 ### 3. 领域服务层
 
-- [ ] 3.1 实现工作流状态机
+- [x] 3.1 实现工作流状态机
      【目标对象】`app/domain/workflow/state_machine.py`
      【修改目的】管理工作流状态转换
      【修改方式】使用状态机模式
@@ -163,7 +163,7 @@
           * persist_state()
           * restore_state(workflow_id)
 
-- [ ] 3.2 实现事件总线
+- [x] 3.2 实现事件总线
      【目标对象】`app/domain/workflow/event_bus.py`
      【修改目的】解耦工作流组件，实现异步事件处理
      【修改方式】使用观察者模式和事件驱动架构
@@ -189,7 +189,7 @@
           * WORKFLOW_COMPLETED
           * WORKFLOW_FAILED
 
-- [ ] 3.3 实现任务管理器
+- [x] 3.3 实现任务管理器
      【目标对象】`app/domain/workflow/task_manager.py`
      【修改目的】管理任务的创建、调度和监控
      【修改方式】使用责任链模式
@@ -210,7 +210,7 @@
           * get_pending_tasks(workflow_id) -> List[Task]
           * check_dependencies_satisfied(task) -> bool
 
-- [ ] 3.4 实现任务拆分处理器
+- [x] 3.4 实现任务拆分处理器
      【目标对象】`app/domain/workflow/handlers/task_split.py`
      【修改目的】分析用户请求并拆分为子任务
      【修改方式】使用 LLM 进行任务分析和拆分
@@ -229,7 +229,7 @@
         - 降级处理:
           * 拆分失败时降级到单任务模式
 
-- [ ] 3.5 实现任务执行处理器
+- [x] 3.5 实现任务执行处理器
      【目标对象】`app/domain/workflow/handlers/task_execution.py`
      【修改目的】执行子任务和管理工具调用
      【修改方式】使用策略模式处理不同类型任务
@@ -254,7 +254,7 @@
           * 超时自动取消
           * 超时告警
 
-- [ ] 3.6 实现摘要生成处理器
+- [x] 3.6 实现摘要生成处理器
      【目标对象】`app/domain/workflow/handlers/summarize.py`
      【修改目的】生成对话摘要压缩上下文
      【修改方式】使用 LLM 生成摘要
@@ -275,7 +275,7 @@
           * 保留重要消息
           * 合并相似内容
 
-- [ ] 3.7 实现工具管理器
+- [x] 3.7 实现工具管理器
      【目标对象】`app/domain/workflow/tool_manager.py`
      【修改目的】管理和调用各种工具
      【修改方式】使用工厂模式
@@ -300,7 +300,7 @@
           * 参数验证
           * 结果过滤
 
-- [ ] 3.8 实现自定义状态机基类
+- [x] 3.8 实现自定义状态机基类
      【目标对象】`app/domain/workflow/state_machine.py`
      【修改目的】管理工作流状态转换
      【修改方式】使用 Python Enum + 状态转换表
@@ -317,7 +317,7 @@
         - 状态恢复方法:
           * restore_state(workflow_id) 从数据库加载
 
-- [ ] 3.9 实现内存事件总线
+- [x] 3.9 实现内存事件总线
      【目标对象】`app/domain/workflow/event_bus.py`
      【修改目的】解耦工作流组件，实现异步事件处理
      【修改方式】使用 asyncio.Queue + 观察者模式
@@ -339,7 +339,7 @@
           * 队列满时丢弃 LOW 优先级事件
           * 队列长度阈值：10000
 
-- [ ] 3.10 实现指数退避重试器
+- [x] 3.10 实现指数退避重试器
      【目标对象】`app/domain/workflow/retry.py`
      【修改目的】处理任务失败重试
      【修改方式】使用策略模式
@@ -357,7 +357,7 @@
           * 可重试：NetworkError, TimeoutError, ServiceUnavailable
           * 不可重试：PermissionError, ValidationError, BusinessError
 
-- [ ] 3.11 实现 Saga 协调器
+- [x] 3.11 实现 Saga 协调器
      【目标对象】`app/domain/workflow/saga.py`
      【修改目的】处理长工作流失败的补偿
      【修改方式】使用 Saga 模式
@@ -376,7 +376,7 @@
           * 回滚数据库事务
           * 发送取消通知
 
-- [ ] 3.12 实现进度上报器
+- [x] 3.12 实现进度上报器
      【目标对象】`app/domain/workflow/progress.py`
      【修改目的】长任务进度上报
      【修改方式】使用定时任务
@@ -395,7 +395,7 @@
 
 ### 4. 应用服务层
 
-- [ ] 4.1 实现工作流应用服务
+- [x] 4.1 实现工作流应用服务
      【目标对象】`app/application/workflow/`
      【修改目的】编排工作流相关的用例
      【修改方式】实现应用服务
@@ -412,7 +412,7 @@
           * replay_workflow(workflow_id) -> WorkflowDTO
           * check_workflow_exists(workflow_id) -> bool
 
-- [ ] 4.2 实现任务应用服务
+- [x] 4.2 实现任务应用服务
      【目标对象】`app/application/workflow/`
      【修改目的】编排任务管理相关的用例
      【修改方式】实现应用服务
@@ -427,7 +427,7 @@
           * get_task_dependencies(task_id) -> List[TaskDTO]
           * get_task_dependents(task_id) -> List[TaskDTO]
 
-- [ ] 4.3 实现摘要应用服务
+- [x] 4.3 实现摘要应用服务
      【目标对象】`app/application/workflow/`
      【修改目的】编排摘要管理相关的用例
      【修改方式】实现应用服务
@@ -440,7 +440,7 @@
           * delete_summary(summary_id)
           * list_summaries(user_id, page, size) -> Page[SummaryDTO]
 
-- [ ] 4.4 实现工作流配置服务
+- [x] 4.4 实现工作流配置服务
      【目标对象】`app/application/workflow/`
      【修改目的】管理工作流配置
      【修改方式】使用配置中心
@@ -459,7 +459,7 @@
 
 ### 5. API 路由层
 
-- [ ] 5.1 创建工作流管理 API 路由
+- [x] 5.1 创建工作流管理 API 路由
      【目标对象】`app/api/v1/workflow/`
      【修改目的】暴露工作流管理的 HTTP API
      【修改方式】使用 FastAPI 创建路由
@@ -480,7 +480,7 @@
         - `POST /api/v1/workflows/{workflow_id}/retry` - 重试工作流
         - `POST /api/v1/workflows/{workflow_id}/replay` - 重放工作流
 
-- [ ] 5.2 创建任务管理 API 路由
+- [x] 5.2 创建任务管理 API 路由
      【目标对象】`app/api/v1/workflow/`
      【修改目的】暴露任务管理的 HTTP API
      【修改方式】使用 FastAPI 创建路由
@@ -497,7 +497,7 @@
         - `GET /api/v1/tasks/{task_id}/dependencies` - 获取任务依赖
           * 响应:List[TaskDTO]
 
-- [ ] 5.3 创建摘要管理 API 路由
+- [x] 5.3 创建摘要管理 API 路由
      【目标对象】`app/api/v1/workflow/`
      【修改目的】暴露摘要管理的 HTTP API
      【修改方式】使用 FastAPI 创建路由
@@ -515,7 +515,7 @@
           * 参数:page, size
           * 响应:Page[SummaryDTO]
 
-- [ ] 5.4 创建工作流事件 API 路由
+- [x] 5.4 创建工作流事件 API 路由
      【目标对象】`app/api/v1/workflow/`
      【修改目的】暴露工作流事件的 HTTP API
      【修改方式】使用 FastAPI 创建路由
@@ -529,7 +529,7 @@
 
 ### 6. 基础设施层
 
-- [ ] 6.1 实现工作流配置
+- [x] 6.1 实现工作流配置
      【目标对象】`app/infrastructure/config/`
      【修改目的】配置工作流运行参数
      【修改方式】使用配置文件
@@ -550,7 +550,7 @@
         - workflow.eventbus.queue_size - 事件队列大小
         - workflow.eventbus.thread_count - 事件处理线程数
 
-- [ ] 6.2 实现线程池管理
+- [x] 6.2 实现线程池管理
      【目标对象】`app/infrastructure/concurrent/`
      【修改目的】管理工作流并发执行
      【修改方式】使用 ThreadPoolExecutor
@@ -568,7 +568,7 @@
           * max_workers (默认：CPU 核心数*2)
           * thread_name_prefix
 
-- [ ] 6.3 实现定时任务清理
+- [x] 6.3 实现定时任务清理
      【目标对象】`app/infrastructure/scheduler/`
      【修改目的】定期清理过期工作流和任务
      【修改方式】使用 APScheduler
@@ -584,7 +584,7 @@
 
 ### 7. 事件监听器
 
-- [ ] 7.1 实现工作流事件监听器
+- [x] 7.1 实现工作流事件监听器
      【目标对象】`app/application/workflow/listener.py`
      【修改目的】监听工作流事件并处理
      【修改方式】实现事件监听器
@@ -605,7 +605,7 @@
             - 触发告警
             - 尝试降级处理
 
-- [ ] 7.2 实现任务事件监听器
+- [x] 7.2 实现任务事件监听器
      【目标对象】`app/application/workflow/listener.py`
      【修改目的】监听任务事件并处理
      【修改方式】实现事件监听器
@@ -623,7 +623,7 @@
           * 判断是否重试
           * 传播失败到工作流
 
-- [ ] 7.3 实现工具调用事件监听器
+- [x] 7.3 实现工具调用事件监听器
      【目标对象】`app/application/workflow/listener.py`
      【修改目的】监听工具调用事件
      【修改方式】实现事件监听器
@@ -636,7 +636,7 @@
           * 记录错误信息
           * 触发重试或降级
 
-- [ ] 7.4 实现摘要生成事件监听器
+- [x] 7.4 实现摘要生成事件监听器
      【目标对象】`app/application/workflow/listener.py`
      【修改目的】监听摘要生成事件
      【修改方式】实现事件监听器
@@ -649,7 +649,7 @@
 
 ### 8. 测试
 
-- [ ] 8.1 编写单元测试
+- [x] 8.1 编写单元测试
      【目标对象】`tests/test_workflow_service.py`
      【修改目的】确保工作流功能正确性
      【修改方式】使用 pytest
@@ -665,7 +665,7 @@
         - 测试工具调用
         - 测试错误处理和重试
 
-- [ ] 8.2 编写集成测试
+- [x] 8.2 编写集成测试
      【目标对象】`tests/integration/test_workflow_api.py`
      【修改目的】确保工作流 API 端到端正常工作
      【修改方式】使用 FastAPI TestClient
@@ -679,7 +679,7 @@
         - 测试获取摘要 API
         - 测试完整工作流执行流程
 
-- [ ] 8.3 编写性能测试
+- [x] 8.3 编写性能测试
      【目标对象】`tests/performance/test_workflow_performance.py`
      【修改目的】测试工作流性能
      【修改方式】使用 pytest-benchmark

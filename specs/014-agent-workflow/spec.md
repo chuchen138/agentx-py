@@ -204,6 +204,49 @@ Agent 工作流模块提供复杂任务的自动化编排能力，支持任务�
 - 支持工作流重放（重新执行整个工作流）
 - 系统崩溃后自动恢复活跃工作流（基于 018 模块的持久化状态）
 
+## API 接口
+
+### 1. 工作流管理 API
+
+| 方法 | 路径 | 描述 | 请求体 | 响应体 |
+|------|------|------|--------|--------|
+| POST | `/api/v1/workflows` | 创建工作流 | `{"session_id": "...", "user_id": "...", "agent_id": "..."}` | `WorkflowDTO` |
+| GET | `/api/v1/workflows/{workflow_id}` | 获取工作流详情 | N/A | `WorkflowDTO` |
+| GET | `/api/v1/workflows` | 获取用户工作流列表 | `page`, `size`, `user_id` (查询参数) | `List[WorkflowDTO]` |
+| GET | `/api/v1/sessions/{session_id}/workflows` | 获取会话工作流列表 | N/A | `List[WorkflowDTO]` |
+| DELETE | `/api/v1/workflows/{workflow_id}` | 删除工作流 | N/A | `{"message": "..."}` |
+| POST | `/api/v1/workflows/{workflow_id}/cancel` | 取消工作流 | `{"reason": "..."}` | `{"message": "..."}` |
+| POST | `/api/v1/workflows/{workflow_id}/retry` | 重试工作流 | N/A | `WorkflowDTO` |
+| POST | `/api/v1/workflows/{workflow_id}/replay` | 重放工作流 | N/A | `WorkflowDTO` |
+
+### 2. 任务管理 API
+
+| 方法 | 路径 | 描述 | 请求体 | 响应体 |
+|------|------|------|--------|--------|
+| GET | `/api/v1/workflows/{workflow_id}/tasks` | 获取工作流任务列表 | N/A | `List[TaskDTO]` |
+| GET | `/api/v1/tasks/{task_id}` | 获取任务详情 | N/A | `TaskDTO` |
+| GET | `/api/v1/tasks/{task_id}/status` | 获取任务状态 | N/A | `TaskStatusDTO` |
+| POST | `/api/v1/tasks/{task_id}/retry` | 重试任务 | N/A | `TaskDTO` |
+| POST | `/api/v1/tasks/{task_id}/cancel` | 取消任务 | N/A | `{"message": "..."}` |
+| GET | `/api/v1/tasks/{task_id}/dependencies` | 获取任务依赖 | N/A | `List[TaskDTO]` |
+
+### 3. 摘要管理 API
+
+| 方法 | 路径 | 描述 | 请求体 | 响应体 |
+|------|------|------|--------|--------|
+| GET | `/api/v1/sessions/{session_id}/summaries` | 获取会话摘要 | N/A | `SummaryDTO` |
+| GET | `/api/v1/workflows/{workflow_id}/summaries` | 获取工作流摘要 | N/A | `SummaryDTO` |
+| POST | `/api/v1/sessions/{session_id}/summaries/regenerate` | 重新生成摘要 | `{"strategy": "..."}` | `SummaryDTO` |
+| DELETE | `/api/v1/summaries/{summary_id}` | 删除摘要 | N/A | `{"message": "..."}` |
+| GET | `/api/v1/summaries` | 获取用户摘要列表 | `user_id`, `page`, `size` (查询参数) | `List[SummaryDTO]` |
+
+### 4. 工作流事件 API
+
+| 方法 | 路径 | 描述 | 请求体 | 响应体 |
+|------|------|------|--------|--------|
+| GET | `/api/v1/workflows/{workflow_id}/events` | 获取工作流事件列表 | `limit` (查询参数) | `List[WorkflowEventDTO]` |
+| GET | `/api/v1/events/types` | 获取事件类型统计 | N/A | `Dict[str, int]` |
+
 ## 附录：流程图
 
 ### 工作流状态机图

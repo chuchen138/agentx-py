@@ -6,6 +6,8 @@ from .api_key.routes import router as api_key_router
 from .rag.routes import router as rag_router
 from .session import router as session_router
 from .memory import router as memory_router
+from .workflow import router as workflow_router
+from .workflow import task_routes, summary_routes, event_routes
 from .endpoints.sse_endpoints import router as sse_router
 from .websocket.agent_websocket import router as agent_ws_router
 
@@ -31,6 +33,12 @@ api_router.include_router(session_router)
 
 # 注册记忆相关路由
 api_router.include_router(memory_router)
+
+# 注册工作流相关路由
+api_router.include_router(workflow_router)
+api_router.include_router(task_routes.router)
+api_router.include_router(summary_routes.router)
+api_router.include_router(event_routes.router)
 
 # 注册SSE流式响应端点
 api_router.include_router(sse_router, tags=["sse"])
