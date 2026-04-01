@@ -4,7 +4,7 @@
 
 **说明**: Session/Message/Context的实体模型、仓储和基础领域服务已在 011-session-context中实现，本模块直接复用。
 
-- [ ] 1.1 引用 011 的 Session 领域服务
+- [x] 1.1 引用 011 的 Session 领域服务
      【目标对象】`app/domain/conversation/services/session_domain_service.py`
      【修改目的】复用已实现的会话管理能力
      【相关依赖】011-session-context 已完成
@@ -12,7 +12,7 @@
         - 直接使用 011 中的 SessionDomainService
         - 无需重复实现 CRUD 操作
 
-- [ ] 1.2 引用 011 的 Message 领域服务
+- [x] 1.2 引用 011 的 Message 领域服务
      【目标对象】`app/domain/conversation/services/message_domain_service.py`
      【修改目的】复用已实现的消息管理能力
      【相关依赖】011-session-context 已完成
@@ -20,7 +20,7 @@
         - 直接使用 011 中的 MessageDomainService
         - 专注于消息处理逻辑而非存储
 
-- [ ] 1.3 引用 011 的 Context 领域服务
+- [x] 1.3 引用 011 的 Context 领域服务
      【目标对象】`app/domain/conversation/services/context_domain_service.py`
      【修改目的】复用已实现的上下文管理能力
      【相关依赖】011-session-context 已完成
@@ -30,7 +30,7 @@
 
 ### 二、聊天模式处理器（013 核心）
 
-- [ ] 2.1 实现 AbstractMessageHandler 基类
+- [x] 2.1 实现 AbstractMessageHandler 基类
      【目标对象】`app/application/conversation/handlers/abstract_message_handler.py`
      【修改目的】定义消息处理器的统一接口和模板方法
      【修改方式】使用 Python ABC 抽象基类
@@ -40,7 +40,7 @@
         - 实现流式响应辅助方法
         - 实现执行追踪集成方法
 
-- [ ] 2.2 实现 ChatMessageHandler（标准对话）
+- [x] 2.2 实现 ChatMessageHandler（标准对话）
      【目标对象】`app/application/conversation/handlers/chat_message_handler.py`
      【修改目的】处理标准对话模式
      【修改内容】
@@ -49,7 +49,7 @@
         - 集成记忆提取和注入
         - 支持流式响应
 
-- [ ] 2.3 实现 AgentMessageHandler（Agent 智能体）
+- [x] 2.3 实现 AgentMessageHandler（Agent 智能体）
      【目标对象】`app/application/conversation/handlers/agent_message_handler.py`
      【修改目的】处理 Agent 对话模式
      【修改内容】
@@ -68,7 +68,7 @@
           - 向用户展示任务进度
         - 支持流式响应和中断
 
-- [ ] 2.4 实现 RagMessageHandler（RAG 检索增强）
+- [x] 2.4 实现 RagMessageHandler（RAG 检索增强）
      【目标对象】`app/application/conversation/handlers/rag_message_handler.py`
      【修改目的】处理 RAG 对话模式
      【修改内容】
@@ -85,7 +85,7 @@
           - 分阶段推送事件：retrieval_start → retrieval_progress → retrieval_end → thinking → answer
           - 展示检索到的文档片段
 
-- [ ] 2.5 实现 PreviewMessageHandler（预览模式）
+- [x] 2.5 实现 PreviewMessageHandler（预览模式）
      【目标对象】`app/application/conversation/handlers/preview_message_handler.py`
      【修改目的】处理 Agent 预览测试
      【修改内容】
@@ -94,7 +94,7 @@
         - 快速验证智能体配置
         - 限制功能（如不计费、不保存历史）
 
-- [ ] 2.6 实现 MessageHandlerFactory
+- [x] 2.6 实现 MessageHandlerFactory
      【目标对象】`app/application/conversation/handlers/message_handler_factory.py`
      【修改目的】根据请求自动选择处理器
      【修改内容】
@@ -109,7 +109,7 @@
 
 ### 三、流式响应与实时通信
 
-- [ ] 3.1 实现 SSE 流式响应端点
+- [x] 3.1 实现 SSE 流式响应端点
      【目标对象】`app/api/v1/endpoints/sse_endpoints.py`
      【修改目的】提供 SSE 流式输出能力
      【修改方式】使用 sse-starlette 库
@@ -136,7 +136,7 @@
           - 捕获异常并推送 error 事件
           - 清理 SSE 连接资源
 
-- [ ] 3.2 实现 WebSocket 连接管理器
+- [x] 3.2 实现 WebSocket 连接管理器
      【目标对象】`app/infrastructure/websocket/connection_manager.py`
      【修改目的】管理 WebSocket 连接（备选方案）
      【修改内容】
@@ -150,7 +150,7 @@
           - 连接建立时验证 JWT Token
           - 未授权连接立即拒绝
 
-- [ ] 3.3 实现 Agent WebSocket 路由
+- [x] 3.3 实现 Agent WebSocket 路由
      【目标对象】`app/api/v1/websocket/agent_websocket.py`
      【修改目的】处理 Agent WebSocket 连接
      【修改内容】
@@ -159,7 +159,7 @@
         - 消息接收和转发
         - 认证和授权
 
-- [ ] 3.4 实现 SSE/WebSocket 双协议兼容
+- [x] 3.4 实现 SSE/WebSocket 双协议兼容
      【修改目的】支持降级策略
      【修改内容】
         - 优先使用 SSE（浏览器兼容性好）
@@ -168,7 +168,7 @@
 
 ### 四、安全与输入验证
 
-- [ ] 4.1 实现敏感词过滤器
+- [x] 4.1 实现敏感词过滤器
      【目标对象】`app/domain/conversation/security/sensitive_word_filter.py`
      【修改目的】过滤用户输入中的敏感词
      【修改内容】
@@ -177,7 +177,7 @@
         - 替换敏感词为 ***
         - 记录过滤日志
 
-- [ ] 4.2 实现 Prompt 注入检测
+- [x] 4.2 实现 Prompt 注入检测
      【目标对象】`app/domain/conversation/security/prompt_injection_detector.py`
      【修改目的】检测并阻止 Prompt 注入攻击
      【修改内容】
@@ -355,7 +355,7 @@
 
 ### 十、单元测试
 
-- [ ] 10.1 测试消息处理器
+- [x] 10.1 测试消息处理器
      【目标对象】`tests/unit/application/test_message_handlers.py`
      【修改目的】确保各处理器逻辑正确
      【修改内容】
@@ -435,13 +435,13 @@
 
 **说明**: 表结构已在 011-session-context 中创建，本模块无需重复迁移。
 
-- [ ] 12.1 确认 sessions 表已存在
+- [x] 12.1 确认 sessions 表已存在
      【相关依赖】011-session-context 的迁移脚本
 
-- [ ] 12.2 确认 messages 表已存在
+- [x] 12.2 确认 messages 表已存在
      【相关依赖】011-session-context 的迁移脚本
 
-- [ ] 12.3 确认 contexts 表已存在
+- [x] 12.3 确认 contexts 表已存在
      【相关依赖】011-session-context 的迁移脚本
 
 ### 十三、文档和配置
@@ -471,3 +471,43 @@
         - SSE 事件格式说明
         - 错误码说明
         - 最佳实践（如何选择合适的模式）
+
+## API 端点汇总
+
+### SSE 流式响应端点
+
+| 方法 | 端点 | 描述 | 实现文件 |
+|------|------|------|----------|
+| POST | `/api/v1/sessions/{sessionId}/chat/stream` | 标准流式聊天 | `app/api/v1/endpoints/sse_endpoints.py` |
+| POST | `/api/v1/agents/{agentId}/chat/stream` | Agent 流式聊天 | `app/api/v1/endpoints/sse_endpoints.py` |
+| POST | `/api/v1/rag/{ragId}/chat/stream` | RAG 流式聊天 | `app/api/v1/endpoints/sse_endpoints.py` |
+
+### WebSocket 端点
+
+| 方法 | 端点 | 描述 | 实现文件 |
+|------|------|------|----------|
+| WebSocket | `/ws/agents/{agentId}/sessions` | Agent WebSocket 连接 | `app/api/v1/websocket/agent_websocket.py` |
+
+## 代码文件清单
+
+### 处理器层
+- `app/application/conversation/handlers/abstract_message_handler.py` - 抽象消息处理器基类
+- `app/application/conversation/handlers/chat_message_handler.py` - 标准对话处理器
+- `app/application/conversation/handlers/agent_message_handler.py` - Agent 智能体处理器
+- `app/application/conversation/handlers/rag_message_handler.py` - RAG 检索增强处理器
+- `app/application/conversation/handlers/preview_message_handler.py` - 预览模式处理器
+- `app/application/conversation/handlers/message_handler_factory.py` - 消息处理器工厂
+
+### API 层
+- `app/api/v1/endpoints/sse_endpoints.py` - SSE 流式响应端点
+- `app/api/v1/websocket/agent_websocket.py` - Agent WebSocket 路由
+
+### 安全层
+- `app/domain/conversation/security/sensitive_word_filter.py` - 敏感词过滤器
+- `app/domain/conversation/security/prompt_injection_detector.py` - Prompt 注入检测器
+
+### 基础设施层
+- `app/infrastructure/websocket/connection_manager.py` - WebSocket 连接管理器
+
+### 测试层
+- `app/tests/unit/application/test_message_handlers.py` - 消息处理器单元测试

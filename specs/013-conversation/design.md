@@ -84,6 +84,8 @@
 
 **MessageHandlerFactory** - 消息处理器工厂
 
+**实现文件**: `app/application/conversation/handlers/message_handler_factory.py`
+
 职责：根据请求参数自动选择合适的消息处理器。
 
 实现细节：
@@ -101,6 +103,8 @@
 - **单例模式**: 每个处理器类型全局唯一
 
 **AbstractMessageHandler** - 抽象消息处理器基类
+
+**实现文件**: `app/application/conversation/handlers/abstract_message_handler.py`
 
 职责：定义消息处理的模板方法和公共逻辑。
 
@@ -129,11 +133,17 @@
 **子类实现**:
 
 1. **ChatMessageHandler** - 标准对话处理器
+   
+   **实现文件**: `app/application/conversation/handlers/chat_message_handler.py`
+   
    - 实现简单问答逻辑
    - 调用 LLMDomainService 完成对话
    - 集成记忆提取和注入
 
 2. **AgentMessageHandler** - Agent 智能体处理器
+   
+   **实现文件**: `app/application/conversation/handlers/agent_message_handler.py`
+   
    - **工具调用链路**:
      - 解析 LLM 返回的 tool_calls
      - 调用 AgentToolManager 执行工具
@@ -147,6 +157,9 @@
      - 标记执行阶段（ANALYZING → SPLITTING → EXECUTING → SUMMARIZING）
 
 3. **RagMessageHandler** - RAG 检索增强处理器
+   
+   **实现文件**: `app/application/conversation/handlers/rag_message_handler.py`
+   
    - **检索流程**:
      - 调用 RAGSearchAppService 检索文档
      - 应用 top_k 和 similarity_threshold 参数
@@ -160,6 +173,9 @@
      - answer_start → [token stream] → answer_end
 
 4. **PreviewMessageHandler** - 预览模式处理器
+   
+   **实现文件**: `app/application/conversation/handlers/preview_message_handler.py`
+   
    - 继承 AgentMessageHandler
    - 创建临时会话（不持久化）
    - 跳过计费和历史记录
@@ -201,11 +217,17 @@
 **Security Components** - 安全组件（013 新增）
 
 1. **SensitiveWordFilter** - 敏感词过滤器
+   
+   **实现文件**: `app/domain/conversation/security/sensitive_word_filter.py`
+   
    - 从配置加载敏感词库
    - Trie 树高效匹配
    - 替换策略：***
    
 2. **PromptInjectionDetector** - Prompt 注入检测
+   
+   **实现文件**: `app/domain/conversation/security/prompt_injection_detector.py`
+   
    - 正则模式匹配：忽略指令、角色扮演、越狱尝试
    - 风险评分：0-100
    - 高风险直接拒绝
@@ -223,7 +245,14 @@ ChatContext 封装对话所需的所有信息，包括会话 ID、用户 ID、�
 
 **技术选型**: sse-starlette 的 EventSourceResponse
 
-**实现细节**:
+**实现文件**: `app/api/v1/endpoints/sse_endpoints.py`
+
+**API 端点**:
+- `POST /api/v1/sessions/{sessionId}/chat/stream` - 标准流式聊天
+- `POST /api/v1/agents/{agentId}/chat/stream` - Agent 流式聊天
+- `POST /api/v1/rag/{ragId}/chat/stream` - RAG 流式聊天
+
+实现细节：
 
 1. **创建 EventSourceResponse**:
    ```python
@@ -270,6 +299,10 @@ ChatContext 封装对话所需的所有信息，包括会话 ID、用户 ID、�
 ### WebSocket 备选方案
 
 **技术选型**: FastAPI WebSocket
+
+**实现文件**: `app/api/v1/websocket/agent_websocket.py`
+
+**API 端点**: `/ws/agents/{agentId}/sessions`
 
 **使用场景**:
 - 需要双向通信（如实时中断）
@@ -761,3 +794,27 @@ AgentToolManager.register_tool(CustomTool())
   }
 }
 ```
+
+## 代码文件清单
+
+### 处理器层
+- `app/application/conversation/handlers/abstract_message_handler.py` - 抽象消息处理器基类
+- `app/application/conversation/handlers/chat_message_handler.py` - 标准对话处理器
+- `app/application/conversation/handlers/agent_message_handler.py` - Agent 智能体处理器
+- `app/application/conversation/handlers/rag_message_handler.py` - RAG 检索增强处理器
+- `app/application/conversation/handlers/preview_message_handler.py` - 预览模式处理器
+- `app/application/conversation/handlers/message_handler_factory.py` - 消息处理器工厂
+
+### API 层
+- `app/api/v1/endpoints/sse_endpoints.py` - SSE 流式响应端点
+- `app/api/v1/websocket/agent_websocket.py` - Agent WebSocket 路由
+
+### 安全层
+- `app/domain/conversation/security/sensitive_word_filter.py` - 敏感词过滤器
+- `app/domain/conversation/security/prompt_injection_detector.py` - Prompt 注入检测器
+
+### 基础设施层
+- `app/infrastructure/websocket/connection_manager.py` - WebSocket 连接管理器
+
+### 测试层
+- `app/tests/unit/application/test_message_handlers.py` - 消息处理器单元测试

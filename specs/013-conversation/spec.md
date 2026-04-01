@@ -22,6 +22,8 @@
 - 自动维护会话上下文
 - 内置记忆提取和注入机制
 
+**实现文件**: `app/application/conversation/handlers/chat_message_handler.py`
+
 #### 1.2 Agent 智能体模式
 - 支持工具调用的复杂任务处理
 - **简单任务**：直接在本模块内处理（单步工具调用）
@@ -29,6 +31,8 @@
 - 内置工具和外部工具集成
 - 事件驱动的状态转换
 - 用户可用工具管理
+
+**实现文件**: `app/application/conversation/handlers/agent_message_handler.py`
 
 **与 014 的协作**：
 - 013 负责接收用户消息并判断是否为复杂任务
@@ -43,10 +47,16 @@
 - 支持多数据集和单文件检索
 - 可配置的检索参数（最大结果数、相似度阈值）
 
+**实现文件**: `app/application/conversation/handlers/rag_message_handler.py`
+
 #### 1.4 预览模式
 - 支持智能体预览测试
 - 快速验证智能体配置
 - 流式响应展示效果
+- 临时会话（不持久化）
+- 跳过计费和历史记录
+
+**实现文件**: `app/application/conversation/handlers/preview_message_handler.py`
 
 ### 2. 会话管理
 
@@ -95,6 +105,13 @@
 - SSE（Server-Sent Events）协议支持
 - 逐 Token 输出
 - 低延迟响应
+
+**实现文件**: `app/api/v1/endpoints/sse_endpoints.py`
+
+**API 端点**:
+- `POST /api/v1/sessions/{sessionId}/chat/stream` - 标准流式聊天
+- `POST /api/v1/agents/{agentId}/chat/stream` - Agent 流式聊天
+- `POST /api/v1/rag/{ragId}/chat/stream` - RAG 流式聊天
 
 #### 4.2 流式会话管理
 - 会话注册与追踪
@@ -159,6 +176,17 @@
 - 历史消息管理
 - 上下文维护
 
+**API 调用**:
+```bash
+POST /api/v1/sessions/{sessionId}/chat/stream
+Content-Type: application/json
+
+{
+  "content": "你好，介绍一下你自己",
+  "stream": true
+}
+```
+
 ### 场景二：任务执行
 用户向智能体提出复杂任务（如"帮我查询今天的天气并制定出行计划"），智能体自动拆分任务、调用相应工具执行，最后汇总结果。
 
@@ -169,6 +197,17 @@
 - 工作流管理
 - 事件驱动状态转换
 
+**API 调用**:
+```bash
+POST /api/v1/agents/{agentId}/chat/stream
+Content-Type: application/json
+
+{
+  "content": "帮我查询今天的天气并制定出行计划",
+  "stream": true
+}
+```
+
 ### 场景三：知识库问答
 用户询问关于特定文档的问题，系统从知识库中检索相关文档片段，基于检索结果生成精准答案。
 
@@ -177,6 +216,17 @@
 - 文档检索与重排序
 - 检索流程管理（检索、思考、回答）
 - 检索结果展示
+
+**API 调用**:
+```bash
+POST /api/v1/rag/{ragId}/chat/stream
+Content-Type: application/json
+
+{
+  "content": "公司的年假政策是什么？",
+  "stream": true
+}
+```
 
 ### 场景四：实时对话反馈
 用户与智能体进行实时对话，智能体以流式方式快速输出响应内容，提供即时反馈。
@@ -212,6 +262,17 @@
 - 流式响应
 - 快速验证
 
+**API 调用**:
+```bash
+POST /api/v1/agents/{agentId}/preview
+Content-Type: application/json
+
+{
+  "content": "测试智能体响应",
+  "stream": true
+}
+```
+
 ### 场景八：会话中断
 用户在智能体执行过程中决定中断对话，系统立即停止当前处理并返回结果。
 
@@ -226,6 +287,8 @@
 - 基于抽象消息处理器的扩展机制
 - 工厂模式自动选择处理器
 - 支持自定义处理器扩展
+
+**实现文件**: `app/application/conversation/handlers/message_handler_factory.py`
 
 ### 2. 强大的上下文管理
 - ChatContext 统一管理上下文信息
@@ -298,6 +361,8 @@
 3. **Agent 模式**: 当智能体配置了工具且 `chat_mode="agent"` 时
 4. **标准模式** (默认): 其他情况
 
+**实现文件**: `app/application/conversation/handlers/message_handler_factory.py`
+
 模式处理器注册表采用工厂模式 + 字典注册，支持动态扩展。
 
 ### 性能指标
@@ -348,6 +413,10 @@
 - **敏感词过滤**: 可配置的敏感词库（支持正则匹配）
 - **文件上传限制**: 单文件 ≤ 10MB，类型白名单
 
+**实现文件**: 
+- `app/domain/conversation/security/prompt_injection_detector.py`
+- `app/domain/conversation/security/sensitive_word_filter.py`
+
 #### 工具调用安全
 - **白名单校验**: 仅允许调用已注册的工具
 - **结果过滤**: 工具返回结果必须通过安全过滤
@@ -369,6 +438,8 @@
 - **发现机制**: 基于 Python entry_points 自动发现插件
 - **热加载**: 监听 plugins 目录变化，动态加载新处理器
 - **优先级**: 支持设置处理器优先级（数字越小优先级越高）
+
+**实现文件**: `app/application/conversation/handlers/abstract_message_handler.py`
 
 #### 自定义消息类型
 - **扩展方式**: 继承 MessageType 枚举
@@ -439,6 +510,22 @@
 - 创建对话追踪上下文
 - 记录模型调用、工具调用的详细信息
 - 标记执行阶段（分析、执行、汇总）
+
+## API 端点列表
+
+### SSE 流式响应端点
+
+| 方法 | 端点 | 描述 | 实现文件 |
+|------|------|------|----------|
+| POST | `/api/v1/sessions/{sessionId}/chat/stream` | 标准流式聊天 | `app/api/v1/endpoints/sse_endpoints.py` |
+| POST | `/api/v1/agents/{agentId}/chat/stream` | Agent 流式聊天 | `app/api/v1/endpoints/sse_endpoints.py` |
+| POST | `/api/v1/rag/{ragId}/chat/stream` | RAG 流式聊天 | `app/api/v1/endpoints/sse_endpoints.py` |
+
+### WebSocket 端点
+
+| 方法 | 端点 | 描述 | 实现文件 |
+|------|------|------|----------|
+| WebSocket | `/ws/agents/{agentId}/sessions` | Agent WebSocket 连接 | `app/api/v1/websocket/agent_websocket.py` |
 
 ### 典型场景示例
 
@@ -576,3 +663,26 @@ data: {"token_usage":{"total_tokens":350}}
 9. **高可用** - 提供故障转移能力
 10. **文件存储** - 提供文件上传和管理
 
+## 代码文件清单
+
+### 处理器层
+- `app/application/conversation/handlers/abstract_message_handler.py` - 抽象消息处理器基类
+- `app/application/conversation/handlers/chat_message_handler.py` - 标准对话处理器
+- `app/application/conversation/handlers/agent_message_handler.py` - Agent 智能体处理器
+- `app/application/conversation/handlers/rag_message_handler.py` - RAG 检索增强处理器
+- `app/application/conversation/handlers/preview_message_handler.py` - 预览模式处理器
+- `app/application/conversation/handlers/message_handler_factory.py` - 消息处理器工厂
+
+### API 层
+- `app/api/v1/endpoints/sse_endpoints.py` - SSE 流式响应端点
+- `app/api/v1/websocket/agent_websocket.py` - Agent WebSocket 路由
+
+### 安全层
+- `app/domain/conversation/security/sensitive_word_filter.py` - 敏感词过滤器
+- `app/domain/conversation/security/prompt_injection_detector.py` - Prompt 注入检测器
+
+### 基础设施层
+- `app/infrastructure/websocket/connection_manager.py` - WebSocket 连接管理器
+
+### 测试层
+- `app/tests/unit/application/test_message_handlers.py` - 消息处理器单元测试
