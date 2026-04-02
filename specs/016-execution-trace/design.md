@@ -20,6 +20,12 @@
 - FastAPI 路由控制器
 - DTO 对象定义和参数校验
 - 用户认证和权限过滤
+- API 端点：
+  - `GET /execution-trace/trace/{trace_id}`：获取完整的执行链路信息
+  - `GET /execution-trace/history`：分页查询用户的执行历史
+  - `GET /execution-trace/session/{session_id}`：查询会话的执行历史
+  - `GET /execution-trace/failed`：查询用户的失败执行记录
+  - `GET /execution-trace/statistics`：获取用户的执行统计信息
 
 **应用层（Application Layer）**：
 - AgentExecutionTraceAppService：负责业务流程编排
@@ -49,17 +55,14 @@
 - 查询用户的失败执行记录
 - 获取执行统计信息
 
-**TraceCollector（AOP 装饰器）**：
-- **埋点方式**：使用 Python 装饰器实现 AOP
-- **LLM 调用埋点**：装饰 `model_chat()` 方法，记录输入输出、Token、耗时
-- **工具调用埋点**：装饰 `tool_executor.execute()` 方法，记录参数、响应、耗时
-- **Agent 执行埋点**：在 conversation_manager 中植入开始/结束埋点
+**TraceCollector**：
 - **功能**：
   - 获取或开始会话级别的执行追踪
   - 记录模型调用详情
   - 记录工具调用详情
   - 完成执行追踪
 - **采样逻辑**：根据 Trace ID 哈希计算是否采集
+- **实现**：直接调用方法，而非装饰器方式，便于集成到现有代码中
 
 **TraceEventListener（异步事件监听器）**：
 - **监听机制**：asyncio.Queue 消费者
@@ -70,11 +73,21 @@
   - ModelCallEvent：模型调用
   - ToolCallEvent：工具调用
 - **数据脱敏**：在持久化前自动脱敏敏感字段
+- **数据压缩**：对长文本进行 gzip 压缩，减少存储开销
 
 **EventPublisher（事件发布器）**：
 - 基于 asyncio.Queue 实现
 - 容量：10000 条消息
 - 支持背压控制（队列满时降级）
+
+**DataMasker**：
+- 数据脱敏工具，处理敏感数据
+- 支持手机号、邮箱、身份证号、银行卡号等自动脱敏
+- 支持自定义脱敏规则
+
+**TraceContext**：
+- 追踪上下文，包含追踪 ID、用户 ID、会话 ID、Agent ID 等信息
+- 支持禁用状态，当追踪系统异常时返回禁用上下文，不影响主流程
 
 ## 追踪上下文管理
 

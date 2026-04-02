@@ -10,6 +10,7 @@ from .workflow import router as workflow_router
 from .workflow import task_routes, summary_routes, event_routes
 from .endpoints.sse_endpoints import router as sse_router
 from .websocket.agent_websocket import router as agent_ws_router
+from .execution_trace.routes import router as execution_trace_router
 
 api_router = APIRouter()
 
@@ -39,6 +40,9 @@ api_router.include_router(workflow_router)
 api_router.include_router(task_routes.router)
 api_router.include_router(summary_routes.router)
 api_router.include_router(event_routes.router)
+
+# 注册执行追踪相关路由
+api_router.include_router(execution_trace_router)
 
 # 注册SSE流式响应端点
 api_router.include_router(sse_router, tags=["sse"])

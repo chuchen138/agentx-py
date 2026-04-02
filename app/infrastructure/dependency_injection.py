@@ -7,9 +7,12 @@ from app.application.file.service.file_storage_app_service import FileStorageApp
 from app.application.file.strategy.rag_file_storage_strategy import RagFileStorageStrategy
 from app.domain.tool.service import ToolDomainService, ToolVersionDomainService, UserToolDomainService
 from app.application.tool.tool_app_service import ToolAppService, ToolVersionService, ToolStateStateMachineAppService
-
-
-
+from app.application.execution_trace.execution_trace_app_service import AgentExecutionTraceAppService
+from app.domain.execution_trace.event_publisher import EventPublisher
+from app.domain.execution_trace.trace_collector import TraceCollector
+from app.infrastructure.execution_trace.repository import ExecutionTraceRepository
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.database import get_db
 
 
 async def get_rag_services():
@@ -125,5 +128,40 @@ async def get_rag_services():
         "search_service": search_service,
         "processing_service": processing_service
     }
+
+
+def get_service(service_class):
+    """获取服务实例"""
+    if service_class == AgentExecutionTraceAppService:
+        # 创建事件发布器
+        event_publisher = EventPublisher()
+        # 创建追踪收集器
+        trace_collector = TraceCollector(event_publisher)
+        # 创建仓库（使用模拟实现）
+        class MockExecutionTraceRepository:
+            async def save_summary(self, summary):
+                pass
+            async def save_summaries(self, summaries):
+                pass
+            async def save_detail(self, detail):
+                pass
+            async def save_details(self, details):
+                pass
+            async def get_summary_by_trace_id(self, trace_id):
+                return None
+            async def get_details_by_trace_id(self, trace_id):
+                return []
+            async def get_summaries_by_user_id(self, user_id, limit=15, offset=0, start_time=None, end_time=None):
+                return []
+            async def get_summaries_by_session_id(self, session_id):
+                return []
+            async def get_failed_summaries(self, user_id=None, limit=15, offset=0):
+                return []
+        repository = MockExecutionTraceRepository()
+        # 创建服务实例
+        return AgentExecutionTraceAppService(trace_collector, repository)
+    else:
+        # 其他服务的处理
+        return None
 
 

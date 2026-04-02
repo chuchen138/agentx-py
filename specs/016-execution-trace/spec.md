@@ -100,6 +100,13 @@
 - 使用 Python asyncio.Queue 作为缓冲队列
 - 后台消费者异步持久化到存储
 
+**核心组件**：
+- TraceContext：追踪上下文，包含追踪 ID、用户 ID、会话 ID、Agent ID 等信息
+- TraceCollector：追踪数据收集器，负责记录执行过程中的各种事件
+- EventPublisher：事件发布器，基于 asyncio.Queue 实现
+- TraceEventListener：事件监听器，异步处理事件并持久化数据
+- DataMasker：数据脱敏工具，处理敏感数据
+
 ### 1.3.2 性能指标
 
 **埋点延迟要求**：
