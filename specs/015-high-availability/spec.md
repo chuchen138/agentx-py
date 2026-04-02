@@ -123,7 +123,7 @@
 ### 1. 实现方式
 
 **部署形态**：
-- **高可用网关服务**：独立 FastAPI 微服务，与主应用分离部署
+- **高可用网关服务**：独立 FastAPI 微服务，与主应用分离部署，提供 REST API 接口
 - **nginx 反向代理**：使用 nginx upstream 实现负载均衡和故障转移
 - **客户端侧路由**：FastAPI 中间件实现本地降级逻辑
 
@@ -131,6 +131,20 @@
 - 主模式：独立高可用网关服务 + nginx upstream
 - 降级模式：FastAPI 中间件实现本地路由
 - 混合模式：两者结合，网关优先，本地降级兜底
+
+### 2. 已实现组件
+
+**核心组件**：
+- **HighAvailabilityDomainService**：高可用领域服务，实现模型选择、会话亲和性、负载均衡等逻辑
+- **CircuitBreakerService**：熔断器服务，实现状态管理、错误率计算和熔断逻辑
+- **HealthCheckScheduler**：健康检查调度器，支持 HTTP Probe、推理探针和 TCP 探测
+- **FallbackChainManager**：降级链管理器，支持自动故障切换和恢复检测
+- **AlertService**：告警服务，支持多渠道通知和告警收敛
+- **HighAvailabilityGateway**：高可用网关服务，提供 REST API 接口
+
+**监控和日志**：
+- **Prometheus 指标**：实例健康状态、熔断器状态、故障切换次数等
+- **结构化日志**：使用 structlog 实现结构化日志记录
 
 ### 2. 健康检查实现
 

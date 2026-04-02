@@ -79,31 +79,53 @@ CircuitBreakerService 实现熔断器模式，防止雪崩效应。每个模型�
 
 **网关启动流程**:
 ```python
-# main.py
-from fastapi import FastAPI
-from app.gateway import HighAvailabilityGateway
-from app.scheduler import HealthCheckScheduler
+# app/gateway/main.py
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from typing import Optional, List, Dict
+import asyncio
 
-app = FastAPI()
+from app.domain.llm.high_availability import HighAvailabilityDomainService, HighAvailabilityResult
+from app.domain.llm.circuit_breaker import CircuitBreakerService
+from app.domain.llm.health_check import HealthCheckScheduler
+from app.domain.llm.fallback import FallbackChainManager, FallbackChain
+from app.domain.llm.enums import ModelType
+
+app = FastAPI(title="High Availability Gateway", version="1.0.0")
+
+# 服务实例
+ha_service = HighAvailabilityDomainService()
+circuit_breaker_service = CircuitBreakerService()
+health_check_scheduler = HealthCheckScheduler()
+fallback_chain_manager = FallbackChainManager()
 
 @app.on_event("startup")
 async def startup_event():
-    # 初始化网关
-    gateway = HighAvailabilityGateway()
-    await gateway.initialize()
-    
     # 启动健康检查调度器
-    scheduler = HealthCheckScheduler()
-    scheduler.start()
-    
-    # 从数据库加载模型配置
-    await gateway.load_models_from_db()
+    await health_check_scheduler.start()
+    print("High Availability Gateway started")
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    # 优雅关闭
-    await gateway.close()
-    scheduler.stop()
+    # 停止健康检查调度器
+    await health_check_scheduler.stop()
+    print("High Availability Gateway stopped")
+
+# API 端点定义
+@app.post("/api/v1/select", response_model=ApiInstanceDTO)
+async def select_instance(request: SelectInstanceRequest) -> ApiInstanceDTO:
+    # 选择最佳实例逻辑
+    pass
+
+@app.post("/api/v1/report")
+async def report_result(request: ReportResultRequest):
+    # 上报调用结果逻辑
+    pass
+
+@app.get("/health", response_model=HealthResponse)
+async def health_check():
+    # 健康检查逻辑
+    pass
 ```
 
 **模型同步到网关**:
@@ -419,6 +441,36 @@ class HealthCheckScheduler:
 - 协议：HTTP/1.1, 支持 HTTP/2
 - 认证：API Key + mTLS(可选)
 - 部署：Docker 容器，Kubernetes 集群
+
+### API 端点
+
+**核心 API 端点**:
+- `POST /api/v1/select` - 选择最佳实例
+- `POST /api/v1/report` - 上报调用结果
+- `GET /health` - 健康检查
+- `POST /api/v1/instances` - 注册实例
+- `DELETE /api/v1/instances/{instance_id}` - 注销实例
+- `GET /api/v1/instances` - 列出所有实例
+- `POST /api/v1/fallback-chains` - 创建降级链
+- `GET /api/v1/fallback-chains/{chain_name}/status` - 获取降级链状态
+- `POST /api/v1/ha/manual/failover` - 手动故障转移
+- `GET /ready` - 就绪检查（Kubernetes 探针）
+
+**健康检查 URL**:
+- `{instance.base_url}/health` - HTTP Probe 健康检查端点
+- `{instance.base_url}/chat/completions` - 推理探针端点
+
+**服务间通信 URL**:
+- `http://ha-gateway:8080/api/v1/instances` - 模型同步到网关
+- `http://ha-gateway:8080/api/v1/select` - 调用网关选择实例
+- `http://ha_gateway` - Nginx 代理到网关集群
+
+**基础设施 URL**:
+- `redis://redis.internal:6379` - Redis 集群连接 URL
+- `postgresql://postgres:password@postgres.internal:5432/agentx` - PostgreSQL 连接 URL
+- `amqp://rabbitmq:password@rabbitmq.internal:5672` - RabbitMQ 连接 URL
+- `http://prometheus.internal:9090` - Prometheus 监控 URL
+- `http://grafana.internal:3000` - Grafana 仪表盘 URL
 
 **核心组件**:
 1. **实例注册管理器**:管理模型实例的注册、更新和注销
@@ -889,6 +941,7 @@ class ResultReporter:
 ### Prometheus 指标示例
 
 ```python
+# app/domain/llm/metrics.py
 from prometheus_client import Gauge, Counter, Histogram
 
 # Gauge 指标
@@ -917,6 +970,12 @@ fallback_triggered_total = Counter(
     ['chain_name', 'level']
 )
 
+health_check_failed_total = Counter(
+    'ha_health_check_failed_total',
+    'Total number of failed health checks',
+    ['instance_id', 'check_type']
+)
+
 # Histogram 指标
 selection_latency_seconds = Histogram(
     'ha_selection_latency_seconds',
@@ -929,50 +988,109 @@ health_check_duration_seconds = Histogram(
     'Health check duration',
     buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0]
 )
+
+model_inference_duration_seconds = Histogram(
+    'ha_model_inference_duration_seconds',
+    'Model inference duration',
+    ['model_id', 'provider'],
+    buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0]
+)
+
+# Summary 指标
+instance_success_rate = Gauge(
+    'ha_instance_success_rate',
+    'Instance success rate over last 100 requests',
+    ['instance_id']
+)
+
+active_instances = Gauge(
+    'ha_active_instances',
+    'Number of active instances',
+    ['provider']
+)
 ```
 
 ### 日志记录
 
 **结构化日志**:
 ```python
+# app/domain/llm/logging.py
 import structlog
+import logging
+import sys
 
-logger = structlog.get_logger()
-
-# 模型同步日志
-logger.info(
-    "model_synced_to_gateway",
-    model_id=model.id,
-    provider=model.provider.name,
-    success=True,
-    duration_ms=duration
+# 配置结构化日志
+structlog.configure(
+    processors=[
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.PositionalArgumentsFormatter(),
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+        structlog.processors.UnicodeDecoder(),
+        structlog.stdlib.render_to_log_kwargs,
+    ],
+    context_class=dict,
+    logger_factory=structlog.stdlib.LoggerFactory(),
+    cache_logger_on_first_use=True,
 )
 
-# 故障切换日志
-logger.warning(
-    "failover_triggered",
-    from_instance=old_instance.id,
-    to_instance=new_instance.id,
-    reason="health_check_failed",
-    consecutive_failures=3
+# 创建根日志记录器
+root_logger = structlog.get_logger()
+
+# 配置标准日志
+logging.basicConfig(
+    format="%(message)s",
+    stream=sys.stdout,
+    level=logging.INFO,
 )
 
-# 降级日志
-logger.info(
-    "fallback_triggered",
-    chain_name="gpt-4-fallback",
-    from_model="gpt-4",
-    to_model="gpt-3.5-turbo",
-    trigger_reason="consecutive_failures"
-)
+# 创建特定模块的日志记录器
+def get_logger(name: str) -> structlog.stdlib.BoundLogger:
+    return structlog.get_logger(name)
 
-# 熔断日志
-logger.warning(
-    "circuit_breaker_opened",
-    instance_id=instance.id,
-    failure_rate=0.6,
-    consecutive_failures=12
-)
+# 日志记录器实例
+high_availability_logger = get_logger("high_availability")
+circuit_breaker_logger = get_logger("circuit_breaker")
+health_check_logger = get_logger("health_check")
+fallback_logger = get_logger("fallback")
+alert_logger = get_logger("alert")
+gateway_logger = get_logger("gateway")
+
+# 日志记录辅助函数
+def log_model_synced(model_id: str, provider: str, duration_ms: float):
+    high_availability_logger.info(
+        "model_synced_to_gateway",
+        model_id=model_id,
+        provider=provider,
+        success=True,
+        duration_ms=duration_ms
+    )
+
+def log_failover_triggered(from_instance: str, to_instance: str, reason: str, consecutive_failures: int):
+    high_availability_logger.warning(
+        "failover_triggered",
+        from_instance=from_instance,
+        to_instance=to_instance,
+        reason=reason,
+        consecutive_failures=consecutive_failures
+    )
+
+def log_fallback_triggered(chain_name: str, from_model: str, to_model: str, trigger_reason: str):
+    fallback_logger.info(
+        "fallback_triggered",
+        chain_name=chain_name,
+        from_model=from_model,
+        to_model=to_model,
+        trigger_reason=trigger_reason
+    )
+
+def log_circuit_breaker_opened(instance_id: str, failure_rate: float, consecutive_failures: int):
+    circuit_breaker_logger.warning(
+        "circuit_breaker_opened",
+        instance_id=instance_id,
+        failure_rate=failure_rate,
+        consecutive_failures=consecutive_failures
+    )
 ```
 
 **日志级别**:
