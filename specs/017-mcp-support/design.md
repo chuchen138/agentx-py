@@ -4,7 +4,35 @@
 
 ### 整体架构
 
-MCP 支持模块采用服务化设计，通过 McpUrlProviderService 协调容器管理和 URL 构建。McpUrlProviderService 提供 MCP 工具 URL 的统一获取接口，自动判断工具类型并选择策略，隐藏容器管理的复杂性。相关服务包括 ContainerAppService（容器管理）、ContainerMonitorService（容器监控）、ReviewContainerService（审核容器管理）、ToolDomainService（工具领域服务）。
+MCP 支持模块采用服务化设计，通过 McpUrlProviderService 协调容器管理和 URL 构建。McpUrlProviderService 提供 MCP 工具 URL 的统一获取接口，自动判断工具类型并选择策略，隐藏容器管理的复杂性。
+
+### 实现结构
+
+```
+app/
+├── application/
+│   └── mcp/
+│       └── mcp_url_provider_service.py  # MCP URL 提供服务
+├── domain/
+│   └── mcp/
+│       ├── enums.py                    # 枚举类定义
+│       ├── models.py                   # 领域模型
+│       ├── protocol_adapter.py         # 协议适配器抽象基类
+│       └── tool_classifier.py          # 工具类型判断器
+├── api/
+│   └── v1/
+│       └── mcp/
+│           ├── __init__.py
+│           └── routes.py               # MCP 相关 API 路由
+└── infrastructure/
+    └── mcp/
+        ├── container_service.py        # 容器服务（模拟实现）
+        ├── sse_manager.py              # SSE 连接管理器
+        ├── url_builder.py              # URL 构建器
+        └── protocol/
+            ├── adapter_factory.py      # 协议适配器工厂
+            └── v1_0_adapter.py         # MCP 1.0 协议适配器
+```
 
 ### 核心组件
 

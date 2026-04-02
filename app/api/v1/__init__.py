@@ -11,6 +11,7 @@ from .workflow import task_routes, summary_routes, event_routes
 from .endpoints.sse_endpoints import router as sse_router
 from .websocket.agent_websocket import router as agent_ws_router
 from .execution_trace.routes import router as execution_trace_router
+from .mcp import router as mcp_router
 
 api_router = APIRouter()
 
@@ -49,3 +50,6 @@ api_router.include_router(sse_router, tags=["sse"])
 
 # 注册WebSocket路由
 api_router.include_router(agent_ws_router)
+
+# 注册MCP相关路由
+api_router.include_router(mcp_router)
