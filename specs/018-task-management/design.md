@@ -529,3 +529,244 @@ async def update_with_retry(self, task_id: str, new_status: TaskStatus, max_retr
 - 用户可以基于模板快速创建任务
 - 支持模板的参数化配置
 - 018 负责存储模板数据
+
+## API 接口设计
+
+### 接口列表
+
+| 接口路径 | 方法 | 功能描述 |
+|---------|------|----------|
+| `/api/v1/tasks/current-session` | GET | 获取当前会话的任务聚合 |
+| `/api/v1/tasks/query` | GET | 查询任务列表（支持过滤和分页） |
+| `/api/v1/tasks/{task_id}/status` | PATCH | 更新任务状态 |
+| `/api/v1/tasks/` | POST | 创建任务 |
+| `/api/v1/tasks/{task_id}/progress` | PATCH | 更新任务进度 |
+| `/api/v1/tasks/{task_id}` | DELETE | 删除任务 |
+
+### 详细接口定义
+
+#### 1. 获取当前会话任务
+
+**请求路径**：`GET /api/v1/tasks/current-session`
+
+**请求参数**：
+
+| 参数名 | 类型 | 必填 | 说明 |
+|-------|------|------|------|
+| `session_id` | String | 是 | 会话 ID |
+| `user_id` | String | 是 | 用户 ID |
+| `include_deleted` | Boolean | 否 | 是否包含已删除（默认 false） |
+
+**响应数据**：
+
+```json
+{
+  "task": {
+    "id": "task-123",
+    "session_id": "session-456",
+    "user_id": "user-789",
+    "parent_task_id": null,
+    "task_name": "父任务",
+    "description": "任务描述",
+    "status": "IN_PROGRESS",
+    "progress": 50,
+    "start_time": "2026-03-14T10:00:00Z",
+    "end_time": null,
+    "task_result": null,
+    "version": 1,
+    "created_at": "2026-03-14T09:00:00Z",
+    "updated_at": "2026-03-14T10:00:00Z"
+  },
+  "sub_tasks": [
+    {
+      "id": "subtask-1",
+      "session_id": "session-456",
+      "user_id": "user-789",
+      "parent_task_id": "task-123",
+      "task_name": "子任务 1",
+      "description": null,
+      "status": "COMPLETED",
+      "progress": 100,
+      "start_time": "2026-03-14T10:10:00Z",
+      "end_time": "2026-03-14T10:20:00Z",
+      "task_result": "子任务 1 完成",
+      "version": 2,
+      "created_at": "2026-03-14T09:10:00Z",
+      "updated_at": "2026-03-14T10:20:00Z"
+    }
+  ]
+}
+```
+
+#### 2. 查询任务列表
+
+**请求路径**：`GET /api/v1/tasks/query`
+
+**请求参数**：
+
+| 参数名 | 类型 | 必填 | 说明 |
+|-------|------|------|------|
+| `user_id` | String | 是 | 用户 ID |
+| `session_id` | String | 否 | 会话 ID 过滤 |
+| `status` | String | 否 | 状态过滤 |
+| `offset` | Integer | 否 | 偏移量（默认 0） |
+| `limit` | Integer | 否 | 每页数量（默认 20） |
+
+**响应数据**：
+
+```json
+{
+  "tasks": [
+    {
+      "id": "task-123",
+      "session_id": "session-456",
+      "user_id": "user-789",
+      "parent_task_id": null,
+      "task_name": "任务名称",
+      "description": "任务描述",
+      "status": "COMPLETED",
+      "progress": 100,
+      "start_time": "2026-03-14T10:00:00Z",
+      "end_time": "2026-03-14T10:30:00Z",
+      "task_result": "任务完成",
+      "version": 2,
+      "created_at": "2026-03-14T09:00:00Z",
+      "updated_at": "2026-03-14T10:30:00Z"
+    }
+  ],
+  "total": 150,
+  "offset": 0,
+  "limit": 20
+}
+```
+
+#### 3. 更新任务状态
+
+**请求路径**：`PATCH /api/v1/tasks/{task_id}/status`
+
+**请求参数**：
+
+| 参数名 | 类型 | 必填 | 说明 |
+|-------|------|------|------|
+| `user_id` | String | 是 | 用户 ID（权限验证） |
+| `status` | String | 是 | 新状态（WAITING, IN_PROGRESS, COMPLETED, FAILED） |
+| `version` | Integer | 是 | 期望版本号（乐观锁检查） |
+| `progress` | Integer | 否 | 新进度（0-100） |
+| `task_result` | String | 否 | 任务结果 |
+
+**响应数据**：
+
+```json
+{
+  "id": "task-123",
+  "session_id": "session-456",
+  "user_id": "user-789",
+  "parent_task_id": null,
+  "task_name": "任务名称",
+  "description": "任务描述",
+  "status": "COMPLETED",
+  "progress": 100,
+  "start_time": "2026-03-14T10:00:00Z",
+  "end_time": "2026-03-14T10:30:00Z",
+  "task_result": "任务完成",
+  "version": 2,
+  "created_at": "2026-03-14T09:00:00Z",
+  "updated_at": "2026-03-14T10:30:00Z"
+}
+```
+
+#### 4. 创建任务
+
+**请求路径**：`POST /api/v1/tasks/`
+
+**请求参数**：
+
+| 参数名 | 类型 | 必填 | 说明 |
+|-------|------|------|------|
+| `session_id` | String | 是 | 会话 ID |
+| `user_id` | String | 是 | 用户 ID |
+| `task_name` | String | 是 | 任务名称 |
+| `description` | String | 否 | 任务描述 |
+| `parent_task_id` | String | 否 | 父任务 ID |
+
+**响应数据**：
+
+```json
+{
+  "id": "task-123",
+  "session_id": "session-456",
+  "user_id": "user-789",
+  "parent_task_id": null,
+  "task_name": "任务名称",
+  "description": "任务描述",
+  "status": "WAITING",
+  "progress": 0,
+  "start_time": null,
+  "end_time": null,
+  "task_result": null,
+  "version": 0,
+  "created_at": "2026-03-14T09:00:00Z",
+  "updated_at": "2026-03-14T09:00:00Z"
+}
+```
+
+#### 5. 更新任务进度
+
+**请求路径**：`PATCH /api/v1/tasks/{task_id}/progress`
+
+**请求参数**：
+
+| 参数名 | 类型 | 必填 | 说明 |
+|-------|------|------|------|
+| `user_id` | String | 是 | 用户 ID |
+| `progress` | Integer | 是 | 新进度（0-100） |
+
+**响应数据**：
+
+```json
+{
+  "id": "task-123",
+  "session_id": "session-456",
+  "user_id": "user-789",
+  "parent_task_id": null,
+  "task_name": "任务名称",
+  "description": "任务描述",
+  "status": "IN_PROGRESS",
+  "progress": 50,
+  "start_time": "2026-03-14T10:00:00Z",
+  "end_time": null,
+  "task_result": null,
+  "version": 1,
+  "created_at": "2026-03-14T09:00:00Z",
+  "updated_at": "2026-03-14T10:15:00Z"
+}
+```
+
+#### 6. 删除任务
+
+**请求路径**：`DELETE /api/v1/tasks/{task_id}`
+
+**请求参数**：
+
+| 参数名 | 类型 | 必填 | 说明 |
+|-------|------|------|------|
+| `user_id` | String | 是 | 用户 ID |
+
+**响应数据**：
+
+```json
+{
+  "message": "Task deleted successfully"
+}
+```
+
+### 错误处理
+
+| 状态码 | 错误信息 | 说明 |
+|-------|---------|------|
+| 404 | Task not found | 任务不存在 |
+| 403 | You don't have permission to access this task | 无权访问该任务（user_id 不匹配） |
+| 400 | Progress must be between 0 and 100 | 进度值超出范围 |
+| 400 | Cannot transition from {status} to {new_status} | 无效的状态转换 |
+| 400 | Expected version {version}, got {actual_version} | 乐观锁版本冲突 |
+| 500 | Internal server error | 服务器内部错误 |

@@ -8,6 +8,7 @@ from .session import router as session_router
 from .memory import router as memory_router
 from .workflow import router as workflow_router
 from .workflow import task_routes, summary_routes, event_routes
+from .task_management import router as task_management_router
 from .endpoints.sse_endpoints import router as sse_router
 from .websocket.agent_websocket import router as agent_ws_router
 from .execution_trace.routes import router as execution_trace_router
@@ -53,3 +54,18 @@ api_router.include_router(agent_ws_router)
 
 # 注册MCP相关路由
 api_router.include_router(mcp_router)
+
+# 注册任务管理相关路由
+api_router.include_router(task_management_router)
+
+# 注册账户相关路由
+from .account.routes import router as account_router
+api_router.include_router(account_router)
+
+# 注册计费相关路由
+from .billing.routes import router as billing_router
+api_router.include_router(billing_router)
+
+# 注册订单相关路由
+from .orders.routes import router as orders_router
+api_router.include_router(orders_router)

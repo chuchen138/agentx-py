@@ -219,19 +219,27 @@ class UsageRecord(Base):
 
 ### 账户相关接口
 
-账户相关接口包括获取当前用户账户信息、发起充值、增加信用额度、查询可用余额和检查余额是否充足等接口。
+| 路径 | 方法 | 功能 | 请求体 (JSON) | 成功响应 (200 OK) |
+|------|------|------|--------------|------------------|
+| `/api/accounts/me` | GET | 获取当前用户账户 | N/A | `{"id": 1, "user_id": 123, "balance": "100.00", "credit": "50.00", "total_consumed": "0.00", "version": 0, "created_at": "2024-01-01T00:00:00", "updated_at": "2024-01-01T00:00:00"}` |
+| `/api/accounts/{id}` | GET | 根据ID获取账户 | N/A | `{"id": 1, "user_id": 123, "balance": "100.00", "credit": "50.00", "total_consumed": "0.00", "version": 0, "created_at": "2024-01-01T00:00:00", "updated_at": "2024-01-01T00:00:00"}` |
+| `/api/accounts/recharge` | POST | 发起充值 | `{"amount": "100.00", "payment_platform": "alipay", "payment_type": "scan"}` | `{"order_id": 1, "order_no": "RECHARGE_TEST", "amount": "100.00", "status": "pending", "payment_platform": "alipay"}` |
+| `/api/accounts/credit` | POST | 增加信用额度（管理员） | `{"amount": "50.00", "reason": "测试信用额度"}` | `{"user_id": 123, "credit_added": "50.00", "new_credit": "100.00", "reason": "测试信用额度"}` |
+| `/api/accounts/balance` | GET | 获取可用余额 | N/A | `{"balance": "100.00", "credit": "50.00", "total_consumed": "0.00", "available_balance": "150.00"}` |
 
-### 订单和支付相关接口
+### 计费相关接口
 
-订单相关接口包含查询用户订单列表、获取订单详情、管理员查询所有订单和管理员获取订单详情。支付相关接口包含创建支付订单、支付回调、查询支付状态和获取可用支付方式。
+| 路径 | 方法 | 功能 | 请求体 (JSON) | 成功响应 (200 OK) |
+|------|------|------|--------------|------------------|
+| `/api/billing/charge` | POST | 执行计费（内部调用） | `{"user_id": 123, "product_id": 1, "service_id": "llm", "usage_data": {"token_count": 1000}, "request_id": "test-request-id"}` | `{"success": true, "amount": "1.00", "usage_record_id": 1, "message": "Billing successful"}` |
+| `/api/billing/usage-records` | GET | 获取用量记录 | N/A | `[{"id": 1, "user_id": 123, "product_id": 1, "request_id": "test-request-1", "billing_type": "token", "service_id": "llm", "usage_data": {"token_count": 1000}, "amount": "1.00", "created_at": "2024-01-01T00:00:00"}]` |
 
-### 商品相关接口（管理员）
+### 订单相关接口
 
-商品相关接口包括创建商品、更新商品、查询商品列表和获取商品详情等接口。
-
-### 计费接口（内部调用）
-
-内部计费接口用于执行计费，接收计费上下文并返回扣费结果。
+| 路径 | 方法 | 功能 | 请求体 (JSON) | 成功响应 (200 OK) |
+|------|------|------|--------------|------------------|
+| `/api/orders` | GET | 查询订单列表 | N/A | `[{"id": 1, "user_id": 123, "order_no": "RECHARGE_TEST", "type": "recharge", "title": "账户充值", "amount": "100.00", "status": "pending", "created_at": "2024-01-01T00:00:00"}]` |
+| `/api/orders/{id}` | GET | 获取订单详情 | N/A | `{"id": 1, "user_id": 123, "order_no": "RECHARGE_TEST", "type": "recharge", "title": "账户充值", "amount": "100.00", "status": "pending", "created_at": "2024-01-01T00:00:00"}` |
 
 ## 设计亮点
 

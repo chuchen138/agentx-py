@@ -326,9 +326,9 @@ GET /api/v1/tasks/current-session
 
 | 参数名 | 类型 | 必填 | 说明 |
 |-------|------|------|------|
-| sessionId | String | 是 | 会话 ID |
-| userId | String | 是 | 用户 ID |
-| includeDeleted | Boolean | 否 | 是否包含已删除（默认 false） |
+| session_id | String | 是 | 会话 ID |
+| user_id | String | 是 | 用户 ID |
+| include_deleted | Boolean | 否 | 是否包含已删除（默认 false） |
 
 **响应数据**：
 
@@ -336,18 +336,36 @@ GET /api/v1/tasks/current-session
 {
   "task": {
     "id": "task-123",
-    "taskName": "父任务",
+    "session_id": "session-456",
+    "user_id": "user-789",
+    "parent_task_id": null,
+    "task_name": "父任务",
+    "description": "任务描述",
     "status": "IN_PROGRESS",
     "progress": 50,
-    "version": 1
+    "start_time": "2026-03-14T10:00:00Z",
+    "end_time": null,
+    "task_result": null,
+    "version": 1,
+    "created_at": "2026-03-14T09:00:00Z",
+    "updated_at": "2026-03-14T10:00:00Z"
   },
-  "subTasks": [
+  "sub_tasks": [
     {
       "id": "subtask-1",
-      "taskName": "子任务 1",
+      "session_id": "session-456",
+      "user_id": "user-789",
+      "parent_task_id": "task-123",
+      "task_name": "子任务 1",
+      "description": null,
       "status": "COMPLETED",
       "progress": 100,
-      "version": 0
+      "start_time": "2026-03-14T10:10:00Z",
+      "end_time": "2026-03-14T10:20:00Z",
+      "task_result": "子任务 1 完成",
+      "version": 2,
+      "created_at": "2026-03-14T09:10:00Z",
+      "updated_at": "2026-03-14T10:20:00Z"
     }
   ]
 }
@@ -363,13 +381,11 @@ GET /api/v1/tasks/query
 
 | 参数名 | 类型 | 必填 | 说明 |
 |-------|------|------|------|
-| userId | String | 是 | 用户 ID |
-| sessionId | String | 否 | 会话 ID 过滤 |
-| status | String | 否 | 状态过滤（可多个，逗号分隔） |
-| startDate | LocalDateTime | 否 | 开始时间过滤 |
-| endDate | LocalDateTime | 否 | 结束时间过滤 |
+| user_id | String | 是 | 用户 ID |
+| session_id | String | 否 | 会话 ID 过滤 |
+| status | String | 否 | 状态过滤 |
 | offset | Integer | 否 | 偏移量（默认 0） |
-| limit | Integer | 否 | 每页数量（默认 20，最大 100） |
+| limit | Integer | 否 | 每页数量（默认 20） |
 
 **响应数据**：
 
@@ -378,11 +394,19 @@ GET /api/v1/tasks/query
   "tasks": [
     {
       "id": "task-123",
-      "sessionId": "session-456",
-      "taskName": "任务名称",
+      "session_id": "session-456",
+      "user_id": "user-789",
+      "parent_task_id": null,
+      "task_name": "任务名称",
+      "description": "任务描述",
       "status": "COMPLETED",
       "progress": 100,
-      "createdAt": "2026-03-14T10:30:00Z"
+      "start_time": "2026-03-14T10:00:00Z",
+      "end_time": "2026-03-14T10:30:00Z",
+      "task_result": "任务完成",
+      "version": 2,
+      "created_at": "2026-03-14T09:00:00Z",
+      "updated_at": "2026-03-14T10:30:00Z"
     }
   ],
   "total": 150,
@@ -394,23 +418,75 @@ GET /api/v1/tasks/query
 ### 6.3 更新任务状态
 
 ```http
-PATCH /api/v1/tasks/{id}/status
+PATCH /api/v1/tasks/{task_id}/status
 ```
 
 **请求参数**：
 
 | 参数名 | 类型 | 必填 | 说明 |
 |-------|------|------|------|
-| userId | String | 是 | 用户 ID（权限验证） |
+| user_id | String | 是 | 用户 ID（权限验证） |
 | status | TaskStatus | 是 | 新状态 |
+| version | Integer | 是 | 期望版本号（乐观锁检查） |
 | progress | Integer | 否 | 新进度（可选） |
-| taskResult | String | 否 | 任务结果（可选） |
-| version | Long | 是 | 期望版本号（乐观锁检查） |
+| task_result | String | 否 | 任务结果（可选） |
 
 **成功响应**：200 OK
 
 **失败响应**：
 - 404 Not Found: 任务不存在
 - 403 Forbidden: 无权访问该任务（user_id 不匹配）
-- 409 Conflict: 版本冲突（乐观锁失败）
+- 400 Bad Request: 参数错误
+- 500 Internal Server Error: 服务器内部错误
+
+### 6.4 创建任务
+
+```http
+POST /api/v1/tasks/
+```
+
+**请求参数**：
+
+| 参数名 | 类型 | 必填 | 说明 |
+|-------|------|------|------|
+| session_id | String | 是 | 会话 ID |
+| user_id | String | 是 | 用户 ID |
+| task_name | String | 是 | 任务名称 |
+| description | String | 否 | 任务描述 |
+| parent_task_id | String | 否 | 父任务 ID |
+
+**成功响应**：200 OK
+
+### 6.5 更新任务进度
+
+```http
+PATCH /api/v1/tasks/{task_id}/progress
+```
+
+**请求参数**：
+
+| 参数名 | 类型 | 必填 | 说明 |
+|-------|------|------|------|
+| user_id | String | 是 | 用户 ID |
+| progress | Integer | 是 | 新进度（0-100） |
+
+**成功响应**：200 OK
+
+### 6.6 删除任务
+
+```http
+DELETE /api/v1/tasks/{task_id}
+```
+
+**请求参数**：
+
+| 参数名 | 类型 | 必填 | 说明 |
+|-------|------|------|------|
+| user_id | String | 是 | 用户 ID |
+
+**成功响应**：200 OK
+
+**失败响应**：
+- 404 Not Found: 任务不存在
+- 403 Forbidden: 无权访问该任务（user_id 不匹配）
    

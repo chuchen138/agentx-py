@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.api.middleware.amount_validation import AmountValidationMiddleware
 from app.api.v1.auth.routes import router as auth_router
 from app.api.v1.users.routes import router as users_router
 from app.api.v1 import api_router as file_router
@@ -25,6 +26,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 注册金额验证中间件
+app.add_middleware(AmountValidationMiddleware)
 
 # 注册路由
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["认证"])

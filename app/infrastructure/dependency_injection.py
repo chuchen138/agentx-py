@@ -165,3 +165,37 @@ def get_service(service_class):
         return None
 
 
+async def get_account_app_service(db: AsyncSession = Depends(get_db)):
+    from app.domain.account.repository import AsyncAccountRepository, AsyncOrderRepository
+    from app.domain.account.service import AccountDomainService
+    from app.application.account.service import AccountAppService
+    
+    account_repository = AsyncAccountRepository(db)
+    order_repository = AsyncOrderRepository(db)
+    account_domain_service = AccountDomainService(account_repository)
+    
+    return AccountAppService(account_domain_service, order_repository)
+
+
+async def get_billing_service(db: AsyncSession = Depends(get_db)):
+    from app.domain.account.repository import AsyncUsageRecordRepository, AsyncProductRepository
+    from app.domain.billing.service import BillingDomainService
+    from app.domain.account.service import AccountDomainService
+    from app.application.billing.service import BillingService
+    from app.domain.account.repository import AsyncAccountRepository
+    
+    usage_record_repository = AsyncUsageRecordRepository(db)
+    product_repository = AsyncProductRepository(db)
+    account_repository = AsyncAccountRepository(db)
+    
+    billing_domain_service = BillingDomainService(usage_record_repository, product_repository)
+    account_domain_service = AccountDomainService(account_repository)
+    
+    return BillingService(billing_domain_service, account_domain_service, product_repository)
+
+
+async def get_order_repository(db: AsyncSession = Depends(get_db)):
+    from app.domain.account.repository import AsyncOrderRepository
+    return AsyncOrderRepository(db)
+
+
