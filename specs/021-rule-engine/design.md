@@ -568,14 +568,31 @@ class RuleEngine:
         # ... 执行逻辑
 ```
 
+## API接口设计
+
+### 规则管理接口
+
+| 接口路径 | 方法 | 功能描述 | 请求体 (JSON) | 响应体 (JSON) |
+|---------|------|---------|--------------|--------------|
+| `/api/v1/rules` | POST | 创建规则 | `{"name": "规则名称", "handlerKey": "model_usage_billing", "description": "规则描述", "config": {...}, "priority": 100}` | `{"id": "rule-123", "name": "规则名称", "handlerKey": "model_usage_billing", "description": "规则描述", "config": {...}, "enabled": true, "priority": 100, "version": 1, "createdAt": "2024-01-01T10:00:00Z", "updatedAt": "2024-01-01T10:00:00Z", "updatedBy": "admin@example.com"}` |
+| `/api/v1/rules/{ruleId}` | PUT | 更新规则 | `{"name": "更新后的规则", "description": "更新后的描述", "config": {...}, "priority": 200}` | `{"id": "rule-123", "name": "更新后的规则", "handlerKey": "model_usage_billing", "description": "更新后的描述", "config": {...}, "enabled": true, "priority": 200, "version": 2, "createdAt": "2024-01-01T10:00:00Z", "updatedAt": "2024-01-01T10:00:00Z", "updatedBy": "admin@example.com"}` |
+| `/api/v1/rules` | GET | 查询规则列表 | N/A (查询参数: handlerKey, keyword, enabled, page, pageSize) | `{"records": [{"id": "rule-123", "name": "规则名称", "handlerKey": "model_usage_billing", "enabled": true, "priority": 100, "version": 1}], "current": 1, "size": 15, "total": 1}` |
+| `/api/v1/rules/{ruleId}` | GET | 获取规则详情 | N/A | `{"id": "rule-123", "name": "规则名称", "handlerKey": "model_usage_billing", "description": "规则描述", "config": {...}, "enabled": true, "priority": 100, "version": 1, "createdAt": "2024-01-01T10:00:00Z", "updatedAt": "2024-01-01T10:00:00Z", "updatedBy": "admin@example.com"}` |
+| `/api/v1/rules/by-handler-key/{handlerKey}` | GET | 根据处理器标识查询规则 | N/A | `{"id": "rule-123", "name": "规则名称", "handlerKey": "model_usage_billing", "description": "规则描述", "config": {...}, "enabled": true, "priority": 100, "version": 1, "createdAt": "2024-01-01T10:00:00Z", "updatedAt": "2024-01-01T10:00:00Z", "updatedBy": "admin@example.com"}` |
+| `/api/v1/rules/{ruleId}` | DELETE | 删除规则 | N/A | `{"message": "Rule deleted successfully"}` |
+| `/api/v1/rules/{ruleId}/versions` | GET | 获取规则历史版本 | N/A | `{"versions": [{"version": 2, "snapshot": {...}, "changed_by": "admin@example.com", "changed_at": "2024-01-01T10:00:00Z", "change_reason": "Update"}]}` |
+| `/api/v1/rules/{ruleId}/rollback/{version}` | POST | 回滚到指定版本 | `{"reason": "回滚原因"}` | `{"id": "rule-123", "name": "规则名称", "handlerKey": "model_usage_billing", "description": "规则描述", "config": {...}, "enabled": true, "priority": 100, "version": 3, "createdAt": "2024-01-01T10:00:00Z", "updatedAt": "2024-01-01T10:00:00Z", "updatedBy": "admin@example.com"}` |
+| `/api/v1/rules/{ruleId}/toggle` | POST | 启用/禁用规则 | `{"enabled": false, "reason": "禁用原因"}` | `{"id": "rule-123", "name": "规则名称", "handlerKey": "model_usage_billing", "description": "规则描述", "config": {...}, "enabled": false, "priority": 100, "version": 2, "createdAt": "2024-01-01T10:00:00Z", "updatedAt": "2024-01-01T10:00:00Z", "updatedBy": "admin@example.com"}` |
+| `/api/v1/rules/execute` | POST | 执行规则 | `{"ruleId": "rule-123", "context": {"user_id": "user-123", "action": "create_agent", "resource": "agent-789", "metadata": {"token_count": 1000}}}` | `{"allowed": true, "reason": "Rule executed successfully", "data": {"cost": 0.05, "currency": "USD"}}` |
+
 ## 技术栈总结
 
 - **Web 框架**: FastAPI 0.104+
 - **ORM**: SQLAlchemy 2.0 + AsyncSession
-- **缓存**: Redis 7.x + Caffeine (本地)
+- **缓存**: Redis 7.x + 本地 LRU 缓存
 - **数据库**: MySQL 8.0 / PostgreSQL 15
 - **监控**: Prometheus + Grafana
 - **追踪**: OpenTelemetry
 - **测试**: pytest + pytest-asyncio
-- **安全**: simpleeval, restrictedpython (可选)
+- **安全**: simpleeval, AST 解析（规则验证）
 - **消息队列**: Redis Pub/Sub（缓存失效通知）

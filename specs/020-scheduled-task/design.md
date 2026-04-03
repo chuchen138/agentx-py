@@ -11,22 +11,41 @@
 **接口层（Interface Layer）**
 - 职责：处理 HTTP 请求，参数校验，响应返回
 - 组件：FastAPI Router, Pydantic DTO/Schema
-- 关键实现：`app/api/v1/scheduledtask/routes.py`
+- 关键实现：
+  - [app/api/v1/scheduledtask/routes.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/api/v1/scheduledtask/routes.py)
+  - [app/api/v1/scheduledtask/__init__.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/api/v1/scheduledtask/__init__.py)
 
 **应用层（Application Layer）**
 - 职责：业务流程编排，DTO 转换，事务管理
 - 组件：ScheduledTaskAppService, TaskValidator, TaskAssembler
-- 关键实现：`app/application/scheduledtask/service.py`
+- 关键实现：
+  - [app/application/scheduledtask/service.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/application/scheduledtask/service.py)
+  - [app/application/scheduledtask/validator.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/application/scheduledtask/validator.py)
+  - [app/application/scheduledtask/assembler.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/application/scheduledtask/assembler.py)
+  - [app/application/scheduledtask/__init__.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/application/scheduledtask/__init__.py)
 
 **领域层（Domain Layer）**
 - 职责：核心业务逻辑，实体模型，领域服务
 - 组件：ScheduledTaskEntity, RepeatConfig, ScheduledTaskDomainService, TaskScheduleService, ScheduledTaskExecutionService, ScheduleTaskExecutor
-- 关键实现：`app/domain/scheduledtask/`
+- 关键实现：
+  - [app/domain/scheduledtask/model.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/domain/scheduledtask/model.py) - 实体定义
+  - [app/domain/scheduledtask/schemas.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/domain/scheduledtask/schemas.py) - DTO/Schema
+  - [app/domain/scheduledtask/service.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/domain/scheduledtask/service.py) - 领域服务
+  - [app/domain/scheduledtask/executor.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/domain/scheduledtask/executor.py) - 执行服务
+  - [app/domain/scheduledtask/repository.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/domain/scheduledtask/repository.py) - 仓储接口
+  - [app/domain/scheduledtask/constant/repeat_type.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/domain/scheduledtask/constant/repeat_type.py) - 重复类型枚举
+  - [app/domain/scheduledtask/constant/task_status.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/domain/scheduledtask/constant/task_status.py) - 任务状态枚举
+  - [app/domain/scheduledtask/constant/__init__.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/domain/scheduledtask/constant/__init__.py)
+  - [app/domain/scheduledtask/__init__.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/domain/scheduledtask/__init__.py)
 
 **基础设施层（Infrastructure Layer）**
 - 职责：数据持久化，外部系统集成，技术中间件
 - 组件：ScheduledTaskRepository (SQLAlchemy), Redis Queue, Docker Sandbox, Distributed Lock
-- 关键实现：`app/infrastructure/`
+- 关键实现：
+  - [app/infrastructure/distributed_lock.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/infrastructure/distributed_lock.py) - 分布式锁实现
+
+**数据库迁移**
+- [alembic/versions/007_create_scheduled_task_tables.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/alembic/versions/007_create_scheduled_task_tables.py)
 
 ### 核心组件
 
@@ -34,42 +53,63 @@
 - 职责：定时任务业务流程编排
 - 方法：create_task, update_task, delete_task, get_task_list, get_task_detail, pause_task, resume_task, trigger_task_manually
 - 依赖：ScheduledTaskDomainService, TaskValidator, TaskAssembler
+- 文件：[app/application/scheduledtask/service.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/application/scheduledtask/service.py)
 
 **TaskScheduleService**
 - 职责：任务调度时间计算，调度器管理
-- 方法：calculate_next_execute_time, add_to_scheduler, remove_from_scheduler, reschedule_task
+- 方法：calculate_next_execute_time, validate_repeat_config
 - 调度器选择：
   - 单实例：APScheduler with PersistentJobStore (Redis)
   - 分布式：Celery Beat + Redis Broker
 - 依赖：APScheduler, croniter
+- 文件：[app/domain/scheduledtask/service.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/domain/scheduledtask/service.py)
 
 **ScheduledTaskExecutionService**
 - 职责：任务执行管理，分布式锁，重试机制
 - 方法：execute_task, handle_retry, handle_timeout, record_execution_log
 - 依赖：DistributedLock, TaskSandbox, ExecutionLogger
+- 文件：[app/domain/scheduledtask/executor.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/domain/scheduledtask/executor.py)
 
 **ScheduleTaskExecutor**
 - 职责：实际执行任务，触发 Agent，状态更新
-- 方法：trigger_agent_execution, update_task_status, handle_exception
+- 方法：execute
 - 执行模式：
   - 普通模式：直接调用 Agent API
   - 沙箱模式：创建 Docker 容器执行
+- 文件：[app/domain/scheduledtask/executor.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/domain/scheduledtask/executor.py)
 
-**TaskSandbox**
-- 职责：任务执行环境隔离
-- 方法：create_container, execute_in_container, destroy_container, monitor_resources
-- 依赖：Docker SDK, 006 容器管理模块
+**TaskValidator**
+- 职责：任务内容校验，敏感词过滤
+- 方法：validate_content, validate_repeat_config, validate_resource_quota, sanitize_content
+- 文件：[app/application/scheduledtask/validator.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/application/scheduledtask/validator.py)
 
 **DistributedLock**
 - 职责：分布式环境防重复执行
 - 方法：acquire, release, extend
 - 实现：Redis SETNX + Watchdog
+- 文件：[app/infrastructure/distributed_lock.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/infrastructure/distributed_lock.py)
+
+## API 端点
+
+| 方法 | 端点 | 描述 | 文件 |
+|------|------|------|------|
+| POST | `/api/v1/scheduled-tasks` | 创建定时任务 | [routes.py#L31](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/api/v1/scheduledtask/routes.py#L31) |
+| GET | `/api/v1/scheduled-tasks` | 获取任务列表 | [routes.py#L54](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/api/v1/scheduledtask/routes.py#L54) |
+| GET | `/api/v1/scheduled-tasks/{id}` | 获取任务详情 | [routes.py#L72](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/api/v1/scheduledtask/routes.py#L72) |
+| PUT | `/api/v1/scheduled-tasks/{id}` | 更新定时任务 | [routes.py#L89](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/api/v1/scheduledtask/routes.py#L89) |
+| DELETE | `/api/v1/scheduled-tasks/{id}` | 删除定时任务 | [routes.py#L116](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/api/v1/scheduledtask/routes.py#L116) |
+| POST | `/api/v1/scheduled-tasks/{id}/pause` | 暂停任务 | [routes.py#L137](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/api/v1/scheduledtask/routes.py#L137) |
+| POST | `/api/v1/scheduled-tasks/{id}/resume` | 恢复任务 | [routes.py#L159](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/api/v1/scheduledtask/routes.py#L159) |
+| POST | `/api/v1/scheduled-tasks/{id}/trigger` | 手动触发执行 | [routes.py#L181](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/api/v1/scheduledtask/routes.py#L181) |
+| GET | `/api/v1/scheduled-tasks/{id}/execution-logs` | 获取执行历史 | [routes.py#L203](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/api/v1/scheduledtask/routes.py#L203) |
 
 ## 核心设计
 
 ### 任务实体和枚举
 
 **ScheduledTask 实体**
+- 文件：[app/domain/scheduledtask/model.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/domain/scheduledtask/model.py)
+
 ```python
 class ScheduledTask(Base):
     __tablename__ = 'scheduled_tasks'
@@ -97,6 +137,8 @@ class ScheduledTask(Base):
 ```
 
 **RepeatType 枚举**
+- 文件：[app/domain/scheduledtask/constant/repeat_type.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/domain/scheduledtask/constant/repeat_type.py)
+
 ```python
 class RepeatType(str, Enum):
     IMMEDIATE = "immediate"      # 立即执行
@@ -107,6 +149,8 @@ class RepeatType(str, Enum):
 ```
 
 **ScheduleTaskStatus 枚举**
+- 文件：[app/domain/scheduledtask/constant/task_status.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/domain/scheduledtask/constant/task_status.py)
+
 ```python
 class ScheduleTaskStatus(str, Enum):
     PENDING = "pending"          # 待执行
@@ -118,37 +162,20 @@ class ScheduleTaskStatus(str, Enum):
 
 ### 重复配置和执行时间计算
 
-**RepeatConfig 结构**
+**RepeatConfig Schema**
+- 文件：[app/domain/scheduledtask/schemas.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/domain/scheduledtask/schemas.py)
+
 ```python
-class RepeatConfig(BaseModel):
+class RepeatConfigSchema(BaseModel):
     interval_hours: Optional[int] = None        # INTERVAL 类型使用
     execute_time: Optional[str] = None          # DAILY/WEEKLY 类型使用，格式 HH:mm
     week_days: Optional[List[int]] = None       # WEEKLY 类型使用，[1,2,3,4,5,6,7]
     cron_expression: Optional[str] = None       # CUSTOM 类型使用
-    
-    @validator('interval_hours')
-    def validate_interval(cls, v):
-        if v is not None and (v < 1 or v > 8760):
-            raise ValueError('interval_hours must be between 1 and 8760')
-        return v
-    
-    @validator('execute_time')
-    def validate_execute_time(cls, v):
-        if v and not re.match(r'^\d{2}:\d{2}$', v):
-            raise ValueError('execute_time must be in HH:mm format')
-        return v
-    
-    @validator('cron_expression')
-    def validate_cron(cls, v):
-        if v:
-            try:
-                croniter(v)
-            except Exception as e:
-                raise ValueError(f'Invalid cron expression: {str(e)}')
-        return v
 ```
 
 **TaskScheduleService 时间计算逻辑**
+- 文件：[app/domain/scheduledtask/service.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/domain/scheduledtask/service.py)
+
 ```python
 class TaskScheduleService:
     def calculate_next_execute_time(self, task: ScheduledTask, base_time: datetime = None) -> datetime:
@@ -188,73 +215,33 @@ class TaskScheduleService:
 
 ### 任务调度和执行
 
-**APScheduler 集成（单实例）**
-```python
-from apscheduler.schedulers.redis import RedisScheduler
-from apscheduler.jobstores.redis import RedisJobStore
-
-class TaskScheduleService:
-    def __init__(self, redis_url: str):
-        jobstores = {'default': RedisJobStore(redis_url=redis_url)}
-        self.scheduler = AsyncIOScheduler(jobstores=jobstores)
-        self.scheduler.start()
-    
-    async def add_to_scheduler(self, task: ScheduledTask):
-        next_time = self.calculate_next_execute_time(task)
-        
-        self.scheduler.add_job(
-            func=self.execute_task,
-            trigger='date',
-            run_date=next_time,
-            args=[task.id],
-            id=f'task_{task.id}_{int(next_time.timestamp())}',
-            replace_existing=True,
-            misfire_grace_time=60  # 1 分钟容错
-        )
-```
-
-**Celery Beat 集成（分布式）**
-```python
-from celery import Celery
-from celery.schedules import crontab
-
-celery_app = Celery('scheduled_tasks', broker='redis://localhost:6379/0')
-
-@celery_app.task(bind=True, max_retries=3)
-def execute_scheduled_task(self, task_id: str):
-    # 尝试获取分布式锁
-    lock = DistributedLock(f'task_lock:{task_id}:{datetime.utcnow().isoformat()}')
-    if not lock.acquire(timeout=0):
-        return  # 跳过执行
-    
-    try:
-        executor = ScheduleTaskExecutor()
-        executor.execute(task_id)
-    except Exception as exc:
-        raise self.retry(exc, countdown=self.countdown_backoff())
-    finally:
-        lock.release()
-```
-
 **分布式锁实现**
+- 文件：[app/infrastructure/distributed_lock.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/infrastructure/distributed_lock.py)
+
 ```python
 class DistributedLock:
-    def __init__(self, key: str, timeout: int = 300):
-        self.key = key
+    def __init__(self, lock_key: str, timeout: int = 300, redis_client=None):
+        self.lock_key = f"distributed_lock:{lock_key}"
         self.timeout = timeout
         self.token = str(uuid.uuid4())
-        self.redis = Redis.from_url('redis://localhost:6379/0')
+        self.redis = redis_client
+        self._locked = False
     
-    def acquire(self, timeout: int = 0) -> bool:
-        """尝试获取锁，timeout=0 表示非阻塞"""
-        return bool(self.redis.set(
-            self.key,
+    def acquire(self, blocking: bool = True, blocking_timeout: int = 10) -> bool:
+        """尝试获取锁，blocking=False 表示非阻塞"""
+        if not self.redis:
+            return True
+        acquired = self.redis.set(
+            self.lock_key,
             self.token,
             nx=True,  # 仅当不存在时设置
             ex=self.timeout
-        ))
+        )
+        if acquired:
+            self._locked = True
+        return bool(acquired)
     
-    def release(self):
+    def release(self) -> bool:
         """释放锁（Lua 脚本保证原子性）"""
         lua_script = """
         if redis.call("get", KEYS[1]) == ARGV[1] then
@@ -263,68 +250,17 @@ class DistributedLock:
             return 0
         end
         """
-        self.redis.eval(lua_script, 1, self.key, self.token)
-```
-
-### 任务沙箱隔离
-
-**TaskSandbox 实现**
-```python
-class TaskSandbox:
-    def __init__(self, task: ScheduledTask):
-        self.task = task
-        self.docker_client = docker.from_env()
-        self.container = None
-    
-    async def create(self) -> str:
-        """创建隔离容器"""
-        container_config = {
-            'image': self.task.docker_image,
-            'command': f'python execute_task.py {self.task.id}',
-            'cpu_limit': self.task.resource_quota.get('cpu_limit', 1.0),
-            'mem_limit': self.task.resource_quota.get('memory_limit', '512M'),
-            'network_disabled': True,  # 禁用网络
-            'read_only': True,  # 只读文件系统
-            'tmpfs': ['/tmp'],  # 临时目录
-            'cap_drop': ['ALL'],  # 禁用所有 capabilities
-            'security_opt': ['no-new-privileges:true'],
-        }
-        
-        self.container = self.docker_client.containers.run(**container_config, detach=True)
-        return self.container.id
-    
-    async def execute_with_timeout(self) -> str:
-        """执行任务并监控超时"""
-        await self.create()
-        
-        try:
-            exit_code = self.container.wait(timeout=self.task.timeout_minutes * 60)['StatusCode']
-            logs = self.container.logs().decode('utf-8')
-            
-            if exit_code != 0:
-                raise Exception(f'Task failed with exit code {exit_code}')
-            
-            return self.sanitize_logs(logs)
-        
-        finally:
-            await self.destroy()
-    
-    async def destroy(self):
-        """销毁容器"""
-        if self.container:
-            self.container.remove(force=True)
-    
-    def sanitize_logs(self, logs: str) -> str:
-        """日志脱敏"""
-        sensitive_patterns = [r'password=\S+', r'token=\S+', r'secret=\S+']
-        for pattern in sensitive_patterns:
-            logs = re.sub(pattern, '[REDACTED]', logs)
-        return logs
+        result = self.redis.eval(lua_script, 1, self.lock_key, self.token)
+        if result:
+            self._locked = False
+        return bool(result)
 ```
 
 ### 数据持久化
 
 **数据库表结构**
+- 迁移文件：[alembic/versions/007_create_scheduled_task_tables.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/alembic/versions/007_create_scheduled_task_tables.py)
+
 ```sql
 CREATE TABLE scheduled_tasks (
     id VARCHAR(36) PRIMARY KEY,
@@ -377,19 +313,22 @@ CREATE TABLE task_execution_logs (
 - 不推荐 Django-Cron：项目未使用 Django 框架
 
 **幂等性保证**
-- 幂等 key 生成：`idem_key = f"task:{task_id}:execute_at:{execute_timestamp}"`
+- 幂等 key 生成：`idem_key = f"idem:{task_id}:{int(execute_time.timestamp())}"`
 - 实现方式：Redis SETNX + 数据库唯一约束
 - 过期时间：执行时间 + 2 倍超时时间
+- 文件：[app/infrastructure/distributed_lock.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/infrastructure/distributed_lock.py)
 
 **超时处理**
 - 软超时：达到超时时间的 80% 时发送警告
 - 硬超时：达到超时时间后强制终止（Docker 容器 kill / subprocess.terminate）
 - 超时任务状态：标记为 FAILED，记录超时错误
+- 文件：[app/domain/scheduledtask/executor.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/domain/scheduledtask/executor.py)
 
 **重试策略**
 - 重试条件：网络异常、数据库连接失败、Agent 暂时不可用
 - 不重试：权限错误、输入校验失败、业务逻辑错误
-- 退避算法：countdown = min(2^retry_count * 60, 3600) 秒
+- 退避算法：1分钟、5分钟、15分钟
+- 文件：[app/domain/scheduledtask/executor.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/domain/scheduledtask/executor.py)
 
 ## 性能优化
 
@@ -411,28 +350,20 @@ CREATE TABLE task_execution_logs (
 ## 扩展性设计
 
 **新增重复类型步骤**
-1. 在 RepeatType 枚举中添加新值
-2. 在 RepeatConfig 中添加对应配置字段
-3. 在 TaskScheduleService.calculate_next_execute_time 中添加计算逻辑
+1. 在 [RepeatType 枚举](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/domain/scheduledtask/constant/repeat_type.py) 中添加新值
+2. 在 [RepeatConfigSchema](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/domain/scheduledtask/schemas.py) 中添加对应配置字段
+3. 在 [TaskScheduleService.calculate_next_execute_time](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/domain/scheduledtask/service.py) 中添加计算逻辑
 4. 在前端添加 UI 支持
 
 **自定义执行器**
 ```python
-class CustomTaskExecutor(ScheduleTaskExecutor):
-    async def execute(self, task_id: str):
+class CustomTaskExecutor(TaskExecutor):
+    async def execute(self, task: ScheduledTask) -> Dict[str, Any]:
         # 自定义执行逻辑
         # 例如：调用外部系统、执行特定工作流
         pass
 ```
-
-**任务依赖支持**
-```python
-# 扩展 ScheduledTask 实体
-class ScheduledTask(Base):
-    # ... existing fields ...
-    dependency_task_ids = Column(JSON, default=list)  # 依赖的任务 ID 列表
-    auto_trigger_on_dependency = Column(Boolean, default=False)
-```
+- 基类定义：[app/domain/scheduledtask/executor.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/domain/scheduledtask/executor.py)
 
 ## 集成与安全
 
@@ -442,6 +373,7 @@ class ScheduledTask(Base):
 - 上下文传递：任务触发时使用 task.session_id 创建会话上下文
 - 参数注入：在 task.content 中替换 `{{scheduled_task_id}}` 等变量
 - 执行追踪：生成 trace_id 关联到 016 执行追踪模块
+- Agent 执行器：[app/domain/scheduledtask/executor.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/domain/scheduledtask/executor.py)
 
 **与 006 容器管理集成**
 - 复用容器创建逻辑（TaskSandbox 委托给 ContainerManagementService）
@@ -456,6 +388,8 @@ class ScheduledTask(Base):
 ### 安全设计
 
 **输入校验**
+- 文件：[app/application/scheduledtask/validator.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/application/scheduledtask/validator.py)
+
 ```python
 class TaskValidator:
     CONTENT_MAX_LENGTH = 10000
@@ -468,21 +402,21 @@ class TaskValidator:
     SENSITIVE_WORDS = ['password', 'secret', 'token', 'apikey']
     
     @classmethod
-    def validate_content(cls, content: str) -> bool:
+    def validate_content(cls, content: str) -> Tuple[bool, str]:
         if len(content) > cls.CONTENT_MAX_LENGTH:
-            raise ValueError(f'Content exceeds maximum length of {cls.CONTENT_MAX_LENGTH}')
+            return False, f'Content exceeds maximum length of {cls.CONTENT_MAX_LENGTH}'
         
         for pattern in cls.SENSITIVE_PATTERNS:
             if re.search(pattern, content, re.IGNORECASE):
-                raise ValueError('Content contains prohibited executable code')
+                return False, 'Content contains prohibited executable code'
         
-        return True
+        return True, ""
     
     @classmethod
-    def sanitize(cls, text: str) -> str:
+    def sanitize_content(cls, content: str) -> str:
         for word in cls.SENSITIVE_WORDS:
-            text = re.sub(rf'\b{word}\s*=\s*\S+', f'{word}=[REDACTED]', text, flags=re.IGNORECASE)
-        return text
+            content = re.sub(rf'\b{word}\s*=\s*\S+', f'{word}=[REDACTED]', content, flags=re.IGNORECASE)
+        return content
 ```
 
 **权限隔离**
@@ -507,16 +441,16 @@ class TaskValidator:
 - 使用 version 字段控制并发更新
 - UPDATE 时检查 version 匹配
 - 冲突时抛出 OptimisticConcurrencyError
+- 实现：[app/domain/scheduledtask/repository.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/domain/scheduledtask/repository.py)
 
 **幂等记录**
+- 文件：[app/infrastructure/distributed_lock.py](file:///c:/Users/SXF-Admin/Documents/platform/code/agentx-py/app/infrastructure/distributed_lock.py)
+
 ```python
 class IdempotencyManager:
-    def __init__(self, redis_client):
-        self.redis = redis_client
-    
-    def check_and_set(self, task_id: str, execute_time: datetime) -> bool:
+    def check_and_set(self, task_id: str, execute_time: datetime, expire_seconds: int = 7200) -> bool:
         key = f"idem:{task_id}:{int(execute_time.timestamp())}"
-        return bool(self.redis.set(key, '1', nx=True, ex=7200))  # 2 小时过期
+        return bool(self.redis.set(key, '1', nx=True, ex=expire_seconds))
 ```
 
 ## 监控告警

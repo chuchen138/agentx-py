@@ -58,6 +58,10 @@ api_router.include_router(mcp_router)
 # 注册任务管理相关路由
 api_router.include_router(task_management_router)
 
+# 注册定时任务相关路由
+from .scheduledtask import router as scheduled_task_router
+api_router.include_router(scheduled_task_router)
+
 # 注册账户相关路由
 from .account.routes import router as account_router
 api_router.include_router(account_router)
@@ -69,3 +73,7 @@ api_router.include_router(billing_router)
 # 注册订单相关路由
 from .orders.routes import router as orders_router
 api_router.include_router(orders_router)
+
+# 注册规则引擎相关路由
+from .rule import router as rule_router
+api_router.include_router(rule_router)
