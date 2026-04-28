@@ -10,6 +10,57 @@
 
 管理后台采用分层架构设计，接口层处理管理后台的 HTTP 请求，应用层按领域职责划分为 AdminLLMAppService、AdminToolAppService、AdminAuditAppService 等独立服务，领域层提供 LLM 和 Tool 等领域服务支持。
 
+### API 接口设计
+
+#### 管理员用户管理 API
+
+| 接口路径 | 方法 | 功能描述 | 权限要求 |
+|---------|------|---------|---------|
+| `/api/v1/admin/users` | POST | 创建管理员 | SUPER_ADMIN 或 ADMIN |
+| `/api/v1/admin/users` | GET | 获取管理员列表 | ADMIN |
+| `/api/v1/admin/users/{admin_id}` | GET | 获取管理员详情 | ADMIN |
+| `/api/v1/admin/users/{admin_id}/role` | PUT | 更新管理员角色 | SUPER_ADMIN |
+| `/api/v1/admin/users/{admin_id}/permissions` | PUT | 更新管理员权限 | SUPER_ADMIN |
+| `/api/v1/admin/users/{admin_id}/deactivate` | POST | 停用管理员 | SUPER_ADMIN |
+| `/api/v1/admin/users/{admin_id}` | DELETE | 删除管理员 | SUPER_ADMIN |
+
+#### 官方服务商管理 API
+
+| 接口路径 | 方法 | 功能描述 | 权限要求 |
+|---------|------|---------|---------|
+| `/api/v1/admin/providers` | POST | 创建官方服务商 | ADMIN |
+| `/api/v1/admin/providers` | GET | 获取官方服务商列表 | ALL (所有用户可查) |
+| `/api/v1/admin/providers/{provider_id}` | GET | 获取服务商详情 | ALL |
+| `/api/v1/admin/providers/{provider_id}` | PUT | 更新官方服务商 | ADMIN |
+| `/api/v1/admin/providers/{provider_id}` | DELETE | 删除官方服务商 | SUPER_ADMIN |
+| `/api/v1/admin/providers/{provider_id}/logs` | GET | 获取操作日志 | ADMIN |
+
+#### 工具审核 API
+
+| 接口路径 | 方法 | 功能描述 | 权限要求 |
+|---------|------|---------|---------|
+| `/api/v1/admin/tools/audit` | POST | 提交工具审核申请 | AUTHENTICATED_USER |
+| `/api/v1/admin/tools/audit/pending` | GET | 获取待审核列表 | AUDITOR |
+| `/api/v1/admin/tools/audit/records` | GET | 获取审核记录列表 | AUDITOR |
+| `/api/v1/admin/tools/audit/{record_id}` | GET | 获取审核记录详情 | AUDITOR |
+| `/api/v1/admin/tools/audit/{record_id}/start` | POST | 开始审核 | AUDITOR |
+| `/api/v1/admin/tools/audit/{record_id}/approve` | POST | 审核通过 | AUDITOR |
+| `/api/v1/admin/tools/audit/{record_id}/reject` | POST | 审核拒绝 | AUDITOR |
+| `/api/v1/admin/tools/audit/{record_id}/cancel` | POST | 取消审核 | APPLICANT |
+| `/api/v1/admin/tools/audit/tool/{tool_id}/history` | GET | 获取审核历史 | ADMIN |
+
+#### 审计日志 API
+
+| 接口路径 | 方法 | 功能描述 | 权限要求 |
+|---------|------|---------|---------|
+| `/api/v1/admin/logs` | GET | 获取审计日志列表 | ADMIN |
+| `/api/v1/admin/logs/resource/{resource_type}/{resource_id}` | GET | 获取资源操作日志 | ADMIN |
+| `/api/v1/admin/logs/timerange` | GET | 按时间范围查询日志 | ADMIN |
+| `/api/v1/admin/logs/search` | GET | 搜索日志 | ADMIN |
+| `/api/v1/admin/logs/export` | GET | 导出日志 | ADMIN |
+| `/api/v1/admin/logs/action-types` | GET | 获取操作类型列表 | ADMIN |
+| `/api/v1/admin/logs/resource-types` | GET | 获取资源类型列表 | ADMIN |
+
 ### 部署形态
 
 - **独立 FastAPI 应用**：路由前缀 `/admin`，与用户服务共享数据库但逻辑隔离
